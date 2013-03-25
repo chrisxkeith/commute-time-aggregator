@@ -11,6 +11,10 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import java.util.regex.*;
 
+/**
+ * Ping google maps for estimated commute duration. Write duration and time stamp to tab-separated file.
+ * @author ckeith
+ */
 public class DurationCollector2 {
 	private WebDriver driver;
 	private Pattern p;
@@ -39,7 +43,6 @@ public class DurationCollector2 {
 				}
 			}
 		}
-		driver.close();
 		return minutes;
 	}
 
@@ -48,7 +51,7 @@ public class DurationCollector2 {
 		String origin;
 		String destination;
 		String direction = "to_home";
-		String filePathString = "/temp/" + personId + "_commuteTimes.csv";
+		String filePathString = "/temp/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
 		if (f.exists()) {
@@ -82,7 +85,7 @@ public class DurationCollector2 {
 					// TODO : write the previous duration so as not to lose a data point.
 					String s = direction + "\t" + new Date().toString() + "\t"
 							+ newDuration;
-					out.write(s + "\n");
+					out.write(s + System.getProperty("line.separator"));
 					out.flush();
 					System.out.println(s);
 					previousDuration = newDuration;
@@ -90,7 +93,7 @@ public class DurationCollector2 {
 				
 				// Sample every two minutes.
 				// For The Future : randomize the sleep time.
-				Thread.sleep(2 * 60 * 1000);
+				Thread.sleep(5000); // 2 * 60 * 1000);
 			}
 		} finally {
 			out.close();
@@ -99,7 +102,7 @@ public class DurationCollector2 {
 
 	public void run(String[] args) {
 		if (args.length < 3) {
-			this.homeLocation = "395 Bancroft Avenue, San Leandro, CA 94577";
+			this.homeLocation = "368 MacArthur Blvd, San Leandro, CA 945777";
 			this.workLocation = "3200 Bridge Pkwy Redwood City, CA";
 			this.personId = "ckeith";
 		} else {
@@ -112,9 +115,12 @@ public class DurationCollector2 {
 			driver = new FirefoxDriver();
 			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 			collect();
-			driver.quit();
 		} catch (Exception e) {
 			System.out.println(e);
+		} finally {
+			if (driver != null) {
+				driver.quit();
+			}
 		}
 	}
 
