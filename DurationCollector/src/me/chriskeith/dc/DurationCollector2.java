@@ -14,6 +14,9 @@ import java.util.regex.*;
 /**
  * Ping google maps for estimated commute duration. Write duration and time stamp to tab-separated file.
  * @author ckeith
+ * 
+ * Don't manually close Firefox window.
+ * Don't switch networks (e.g., log into a VPN).
  */
 public class DurationCollector2 {
 	private Pattern digitPattern;
@@ -30,6 +33,8 @@ public class DurationCollector2 {
 		driver.findElement(By.id("d_daddr")).clear();
 		driver.findElement(By.id("d_daddr")).sendKeys(destination);
 		driver.findElement(By.id("d_sub")).click();
+		
+		// GMaps can show multiple alternative routes. Use the quickest.
 		List<WebElement> wList = driver.findElements(By
 				.xpath("//span[contains(text(), \"In current traffic: \")]"));
 		int minutes = Integer.MAX_VALUE;
@@ -37,6 +42,10 @@ public class DurationCollector2 {
 			Matcher m = digitPattern.matcher(w.getText());
 			if (m.find()) {
 				int newVal = Integer.parseInt(m.group());
+				if (m.find()) {
+					// First number was hour(s).
+					newVal = (newVal * 60) + Integer.parseInt(m.group());
+				}
 				if (newVal < minutes) {
 					minutes = newVal;
 				}
@@ -47,6 +56,7 @@ public class DurationCollector2 {
 
 	private void collect(WebDriver driver) throws Exception {
 		int previousDuration = -1;
+		Date previousDate = null;
 		String origin;
 		String destination;
 		String direction = "to_home";
@@ -82,14 +92,13 @@ public class DurationCollector2 {
 				}
 				int newDuration = this.collectDuration(driver, origin, destination);
 				if ((newDuration < Integer.MAX_VALUE) && (newDuration != previousDuration)) {
-					// TODO : write the previous duration so as not to lose a data point.
-					String s = direction + "\t" + new Date().toString() + "\t"
-							+ newDuration;
-					out.write(s + System.getProperty("line.separator"));
-					out.flush();
-					System.out.println(s);
+					if (previousDate != null) {
+						writeDuration(out, direction, previousDate, previousDuration);
+					}
+					writeDuration(out, direction, new Date(), newDuration);
 					previousDuration = newDuration;
 				}
+				previousDate = new Date();
 				
 				// Sample every two minutes.
 				// For The Future : randomize the sleep time.
@@ -100,6 +109,14 @@ public class DurationCollector2 {
 		}
 	}
 
+	private void writeDuration(BufferedWriter out, String direction, Date date, int duration) throws Exception {
+		String s = direction + "\t" + date.toString() + "\t" + duration;
+		out.write(s + System.getProperty("line.separator"));
+		out.flush();
+		System.out.println(s);
+
+	}
+	
 	private void runWithRetries() {
 		for (int retries = 0; retries < 5; retries++) {
 			WebDriver driver = null;
@@ -108,7 +125,7 @@ public class DurationCollector2 {
 				driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 				collect(driver);
 			} catch (Exception e) {
-				System.out.println(e);
+				System.out.println(new Date().toString() + System.getProperty("line.separator") + e);
 			} finally {
 				if (driver != null) {
 					driver.quit();
