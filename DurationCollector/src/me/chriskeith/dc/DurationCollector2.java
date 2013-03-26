@@ -16,13 +16,12 @@ import java.util.regex.*;
  * @author ckeith
  */
 public class DurationCollector2 {
-	private WebDriver driver;
-	private Pattern p;
+	private Pattern digitPattern;
 	private String personId;
 	private String homeLocation;
 	private String workLocation;
 
-	private int collectDuration(String origin, String destination)
+	private int collectDuration(WebDriver driver, String origin, String destination)
 			throws Exception {
 		driver.get("https://maps.google.com/");
 		driver.findElement(By.id("d_launch")).click();
@@ -35,7 +34,7 @@ public class DurationCollector2 {
 				.xpath("//span[contains(text(), \"In current traffic: \")]"));
 		int minutes = Integer.MAX_VALUE;
 		for (WebElement w : wList) {
-			Matcher m = p.matcher(w.getText());
+			Matcher m = digitPattern.matcher(w.getText());
 			if (m.find()) {
 				int newVal = Integer.parseInt(m.group());
 				if (newVal < minutes) {
@@ -46,11 +45,12 @@ public class DurationCollector2 {
 		return minutes;
 	}
 
-	private void collect() throws Exception {
+	private void collect(WebDriver driver) throws Exception {
 		int previousDuration = -1;
 		String origin;
 		String destination;
 		String direction = "to_home";
+		// TODO : create the directory
 		String filePathString = "/temp/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
@@ -80,7 +80,7 @@ public class DurationCollector2 {
 					}
 					direction = "to_home";
 				}
-				int newDuration = this.collectDuration(origin, destination);
+				int newDuration = this.collectDuration(driver, origin, destination);
 				if ((newDuration < Integer.MAX_VALUE) && (newDuration != previousDuration)) {
 					// TODO : write the previous duration so as not to lose a data point.
 					String s = direction + "\t" + new Date().toString() + "\t"
@@ -93,13 +93,30 @@ public class DurationCollector2 {
 				
 				// Sample every two minutes.
 				// For The Future : randomize the sleep time.
-				Thread.sleep(5000); // 2 * 60 * 1000);
+				Thread.sleep(2 * 60 * 1000);
 			}
 		} finally {
 			out.close();
 		}
 	}
 
+	private void runWithRetries() {
+		for (int retries = 0; retries < 5; retries++) {
+			WebDriver driver = null;
+			try {
+				driver = new FirefoxDriver();
+				driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+				collect(driver);
+			} catch (Exception e) {
+				System.out.println(e);
+			} finally {
+				if (driver != null) {
+					driver.quit();
+				}
+			}
+		}
+	}
+	
 	public void run(String[] args) {
 		if (args.length < 3) {
 			this.homeLocation = "368 MacArthur Blvd, San Leandro, CA 945777";
@@ -110,18 +127,8 @@ public class DurationCollector2 {
 			this.workLocation = args[1];
 			this.personId = args[2];
 		}
-		try {
-			p = Pattern.compile("[0-9]+");
-			driver = new FirefoxDriver();
-			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-			collect();
-		} catch (Exception e) {
-			System.out.println(e);
-		} finally {
-			if (driver != null) {
-				driver.quit();
-			}
-		}
+		digitPattern = Pattern.compile("[0-9]+");
+		runWithRetries();
 	}
 
 	public static void main(String[] args) {
