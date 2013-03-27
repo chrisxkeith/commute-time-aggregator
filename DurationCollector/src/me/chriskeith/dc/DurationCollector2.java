@@ -10,19 +10,24 @@ import java.util.concurrent.TimeUnit;
 import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import java.util.regex.*;
+import java.text.SimpleDateFormat;
 
 /**
  * Ping google maps for estimated commute duration. Write duration and time stamp to tab-separated file.
+ * To get better data while running:
+ * - Don't manually close Firefox window.
+ * - Don't switch networks (e.g., log into a VPN).
  * @author ckeith
- * 
- * Don't manually close Firefox window.
- * Don't switch networks (e.g., log into a VPN).
  */
 public class DurationCollector2 {
-	private Pattern digitPattern;
 	private String personId;
 	private String homeLocation;
 	private String workLocation;
+	final private String directory = "/tmp";
+	final private Pattern digitPattern = Pattern.compile("[0-9]+");
+	
+	// A format that will convert to a date when pasted into a Google spreadsheet.
+	final private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
 	private int collectDuration(WebDriver driver, String origin, String destination)
 			throws Exception {
@@ -60,8 +65,7 @@ public class DurationCollector2 {
 		String origin;
 		String destination;
 		String direction = "to_home";
-		// TODO : create the directory
-		String filePathString = "/temp/" + personId + "_commuteTimes.txt";
+		String filePathString = directory + "/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
 		if (f.exists()) {
@@ -73,13 +77,14 @@ public class DurationCollector2 {
 		try {
 			while (true) {
 				// Assume : Java VM is running in the appropriate time zone.
-				// TODO : if a weekend day, sleep until midnight Monday.
+				// For The Future : if a weekend day, sleep until midnight Monday.
 				int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 				if (hour < 13) { // switch directions at 12 noon.
 					origin = this.homeLocation;
 					destination = this.workLocation;
 					if (direction.equals("to_home")) {
 						previousDuration = -1;
+						previousDate = null;
 					}
 					direction = "to_work";
 				} else {
@@ -87,15 +92,18 @@ public class DurationCollector2 {
 					destination = this.homeLocation;
 					if (direction.equals("to_work")) {
 						previousDuration = -1;
+						previousDate = null;
 					}
 					direction = "to_home";
 				}
 				int newDuration = this.collectDuration(driver, origin, destination);
-				if ((newDuration < Integer.MAX_VALUE) && (newDuration != previousDuration)) {
+				if (newDuration != previousDuration) {
+					// Don't lose previous data point when duration changed.
+					// Simpler than trying something like Run Length Encoding.
 					if (previousDate != null) {
-						writeDuration(out, direction, previousDate, previousDuration);
+						writeDuration(out, previousDate, previousDuration);
 					}
-					writeDuration(out, direction, new Date(), newDuration);
+					writeDuration(out, new Date(), newDuration);
 					previousDuration = newDuration;
 				}
 				previousDate = new Date();
@@ -109,12 +117,13 @@ public class DurationCollector2 {
 		}
 	}
 
-	private void writeDuration(BufferedWriter out, String direction, Date date, int duration) throws Exception {
-		String s = direction + "\t" + date.toString() + "\t" + duration;
-		out.write(s + System.getProperty("line.separator"));
-		out.flush();
-		System.out.println(s);
-
+	private void writeDuration(BufferedWriter out, Date date, int duration) throws Exception {
+		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
+			String s = dateFormat.format(date) + "\t" + duration;
+			out.write(s + System.getProperty("line.separator"));
+			out.flush();
+			System.out.println(s);
+		}
 	}
 	
 	private void runWithRetries() {
@@ -144,7 +153,12 @@ public class DurationCollector2 {
 			this.workLocation = args[1];
 			this.personId = args[2];
 		}
-		digitPattern = Pattern.compile("[0-9]+");
+		File dir = new File(directory);
+		if (!dir.exists()) {
+			if (!dir.mkdir()) {
+				throw new RuntimeException("Unable to create: " + dir.getAbsolutePath());
+			}
+		}
 		runWithRetries();
 	}
 
