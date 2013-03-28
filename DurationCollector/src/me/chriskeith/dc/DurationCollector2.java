@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat;
  * To get better data while running:
  * - Don't manually close Firefox window.
  * - Don't switch networks (e.g., log into a VPN).
+ * Assume : Java VM is running in the appropriate time zone.
  * @author ckeith
  */
 public class DurationCollector2 {
@@ -60,11 +61,6 @@ public class DurationCollector2 {
 	}
 
 	private void collect(WebDriver driver) throws Exception {
-		int previousDuration = -1;
-		Date previousDate = null;
-		String origin;
-		String destination;
-		String direction = "to_home";
 		String filePathString = directory + "/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
@@ -73,50 +69,62 @@ public class DurationCollector2 {
 		} else {
 			fstream = new FileWriter(filePathString);
 		}
-		BufferedWriter out = new BufferedWriter(fstream);
+		collectDurations(driver, new BufferedWriter(fstream));
+	}
+
+	private void collectDurations(WebDriver driver, BufferedWriter out) throws Exception {
 		try {
+			String origin;
+			String destination;
 			while (true) {
-				// Assume : Java VM is running in the appropriate time zone.
-				// For The Future : if a weekend day, sleep until midnight Monday.
+				sleepUntilStart();
 				int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 				if (hour < 13) { // switch directions at 12 noon.
 					origin = this.homeLocation;
 					destination = this.workLocation;
-					if (direction.equals("to_home")) {
-						previousDuration = -1;
-						previousDate = null;
-					}
-					direction = "to_work";
 				} else {
 					origin = this.workLocation;
 					destination = this.homeLocation;
-					if (direction.equals("to_work")) {
-						previousDuration = -1;
-						previousDate = null;
-					}
-					direction = "to_home";
 				}
 				int newDuration = this.collectDuration(driver, origin, destination);
-				if (newDuration != previousDuration) {
-					// Don't lose previous data point when duration changed.
-					// Simpler than trying something like Run Length Encoding.
-					if (previousDate != null) {
-						writeDuration(out, previousDate, previousDuration);
-					}
-					writeDuration(out, new Date(), newDuration);
-					previousDuration = newDuration;
-				}
-				previousDate = new Date();
+				writeDuration(out, new Date(), newDuration);
 				
 				// Sample every two minutes.
-				// For The Future : randomize the sleep time.
+				// For The Future : possibly randomize the sleep time.
 				Thread.sleep(2 * 60 * 1000);
 			}
 		} finally {
 			out.close();
 		}
 	}
-
+	
+	private void sleepUntilStart() throws Exception {
+		Calendar now = Calendar.getInstance();
+		int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
+		int dayToStart = -1;
+		if ((dayOfWeek == Calendar.SATURDAY) || (dayOfWeek == Calendar.SUNDAY)) {
+			dayToStart = Calendar.MONDAY;
+		} else {
+			int hour = now.get(Calendar.HOUR_OF_DAY);
+			// If outside the 8 p.m. to 4 a.m. range, sleep until 4 a.m.
+			if (19 < hour) {
+				dayToStart = dayOfWeek + 1;
+			}
+			if (hour < 4) {
+				dayToStart = dayOfWeek;
+			}
+		}
+		if (dayToStart > -1) {
+			Calendar start = Calendar.getInstance();
+			start.set(Calendar.DAY_OF_WEEK, dayToStart);
+			start.set(Calendar.HOUR_OF_DAY, 4);
+			start.set(Calendar.MINUTE, 0);
+			long millis = start.getTimeInMillis() - now.getTimeInMillis();
+			System.out.println("About to sleep for " + (millis / 60000) + " minutes.");
+			Thread.sleep(millis);
+		}
+	}
+	
 	private void writeDuration(BufferedWriter out, Date date, int duration) throws Exception {
 		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
 			String s = dateFormat.format(date) + "\t" + duration;
