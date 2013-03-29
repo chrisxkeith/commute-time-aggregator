@@ -21,9 +21,21 @@ import java.text.SimpleDateFormat;
  * @author ckeith
  */
 public class DurationCollector2 {
-	private String personId;
-	private String homeLocation;
-	private String workLocation;
+	
+	class CollectionParams {
+		String personId;
+		String homeLocation;
+		String workLocation;
+		
+		CollectionParams(String personId, String homeLocation, String workLocation) {
+			this.personId = personId;
+			this.homeLocation = homeLocation;
+			this.workLocation = workLocation;
+		}
+	}
+	
+	CollectionParams[] collectionParams;
+	
 	final private String directory = "/tmp";
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 	
@@ -37,8 +49,8 @@ public class DurationCollector2 {
 		driver.findElement(By.id("d_d")).clear();
 		driver.findElement(By.id("d_d")).sendKeys(origin);
 		driver.findElement(By.id("d_daddr")).clear();
-		driver.findElement(By.id("d_daddr")).sendKeys(destination);
-		driver.findElement(By.id("d_sub")).click();
+		driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
+//		driver.findElement(By.id("d_sub")).click();
 		
 		// GMaps can show multiple alternative routes. Use the quickest.
 		List<WebElement> wList = driver.findElements(By
@@ -60,7 +72,7 @@ public class DurationCollector2 {
 		return minutes;
 	}
 
-	private void collect(WebDriver driver) throws Exception {
+	private BufferedWriter getWrite(String personId) throws Exception {
 		String filePathString = directory + "/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
@@ -69,33 +81,30 @@ public class DurationCollector2 {
 		} else {
 			fstream = new FileWriter(filePathString);
 		}
-		collectDurations(driver, new BufferedWriter(fstream));
+		return new BufferedWriter(fstream);
 	}
 
-	private void collectDurations(WebDriver driver, BufferedWriter out) throws Exception {
-		try {
+	private void collectDurations(WebDriver driver) throws Exception {
 			String origin;
 			String destination;
 			while (true) {
 				sleepUntilStart();
 				int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-				if (hour < 13) { // switch directions at 12 noon.
-					origin = this.homeLocation;
-					destination = this.workLocation;
-				} else {
-					origin = this.workLocation;
-					destination = this.homeLocation;
+				for (CollectionParams cp : collectionParams) {
+					if (hour < 13) { // switch directions at 12 noon.
+						origin = cp.homeLocation;
+						destination = cp.workLocation;
+					} else {
+						origin = cp.workLocation;
+						destination = cp.homeLocation;
+					}
+					int newDuration = this.collectDuration(driver, origin, destination);
+					writeDuration(cp.personId, new Date(), newDuration);
 				}
-				int newDuration = this.collectDuration(driver, origin, destination);
-				writeDuration(out, new Date(), newDuration);
-				
 				// Sample every two minutes.
 				// For The Future : possibly randomize the sleep time.
 				Thread.sleep(2 * 60 * 1000);
 			}
-		} finally {
-			out.close();
-		}
 	}
 	
 	private void sleepUntilStart() throws Exception {
@@ -125,12 +134,14 @@ public class DurationCollector2 {
 		}
 	}
 	
-	private void writeDuration(BufferedWriter out, Date date, int duration) throws Exception {
+	private void writeDuration(String personId, Date date, int duration) throws Exception {
 		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
+			BufferedWriter out = this.getWrite(personId);
 			String s = dateFormat.format(date) + "\t" + duration;
 			out.write(s + System.getProperty("line.separator"));
 			out.flush();
 			System.out.println(s);
+			out.close();
 		}
 	}
 	
@@ -140,7 +151,7 @@ public class DurationCollector2 {
 			try {
 				driver = new FirefoxDriver();
 				driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-				collect(driver);
+				collectDurations(driver);
 			} catch (Exception e) {
 				System.out.println(new Date().toString() + System.getProperty("line.separator") + e);
 			} finally {
@@ -152,15 +163,10 @@ public class DurationCollector2 {
 	}
 	
 	public void run(String[] args) {
-		if (args.length < 3) {
-			this.homeLocation = "368 MacArthur Blvd, San Leandro, CA 945777";
-			this.workLocation = "3200 Bridge Pkwy Redwood City, CA";
-			this.personId = "ckeith";
-		} else {
-			this.homeLocation = args[0];
-			this.workLocation = args[1];
-			this.personId = args[2];
-		}
+		collectionParams = new CollectionParams[1];
+		collectionParams[0] = new CollectionParams("ckeith", 
+				"368 MacArthur Blvd, San Leandro, CA 94577",
+				"3200 Bridge Pkwy Redwood City, CA");
 		File dir = new File(directory);
 		if (!dir.exists()) {
 			if (!dir.mkdir()) {
