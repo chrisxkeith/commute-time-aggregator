@@ -110,22 +110,25 @@ public class DurationCollector2 {
 	private void sleepUntilStart() throws Exception {
 		Calendar now = Calendar.getInstance();
 		int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
-		int dayToStart = -1;
-		if ((dayOfWeek == Calendar.SATURDAY) || (dayOfWeek == Calendar.SUNDAY)) {
-			dayToStart = Calendar.MONDAY;
+		int dayIncrement = 0;
+		if (dayOfWeek == Calendar.SATURDAY) {
+			dayIncrement = 2;
+		} else if (dayOfWeek == Calendar.SUNDAY) {
+			dayIncrement = 1;
 		} else {
 			int hour = now.get(Calendar.HOUR_OF_DAY);
 			// If outside the 8 p.m. to 4 a.m. range, sleep until 4 a.m.
 			if (19 < hour) {
-				dayToStart = dayOfWeek + 1;
+				dayIncrement = 1;
 			}
 			if (hour < 4) {
-				dayToStart = dayOfWeek;
+				dayIncrement = 1;
 			}
 		}
-		if (dayToStart > -1) {
+		if (dayIncrement > 0) {
 			Calendar start = Calendar.getInstance();
-			start.set(Calendar.DAY_OF_WEEK, dayToStart);
+			// TODO : Will this work on Dec 31?
+			start.set(Calendar.DAY_OF_YEAR, start.get(Calendar.DAY_OF_YEAR) + dayIncrement);
 			start.set(Calendar.HOUR_OF_DAY, 4);
 			start.set(Calendar.MINUTE, 0);
 			long millis = start.getTimeInMillis() - now.getTimeInMillis();
