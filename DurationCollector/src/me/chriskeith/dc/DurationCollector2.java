@@ -1,8 +1,7 @@
 package me.chriskeith.dc;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -34,9 +33,8 @@ public class DurationCollector2 {
 		}
 	}
 	
-	CollectionParams[] collectionParams;
-	
-	final private String directory = "/tmp";
+	List<CollectionParams> collectionParams;
+	final private String dirForResults = "/tmp";
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 	
 	// A format that will convert to a date when pasted into a Google spreadsheet.
@@ -50,6 +48,7 @@ public class DurationCollector2 {
 		driver.findElement(By.id("d_d")).sendKeys(origin);
 		driver.findElement(By.id("d_daddr")).clear();
 		driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
+// Started being erratic... Replaced with \n above.
 //		driver.findElement(By.id("d_sub")).click();
 		
 		// GMaps can show multiple alternative routes. Use the quickest.
@@ -73,7 +72,7 @@ public class DurationCollector2 {
 	}
 
 	private BufferedWriter getWrite(String personId) throws Exception {
-		String filePathString = directory + "/" + personId + "_commuteTimes.txt";
+		String filePathString = dirForResults + "/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
 		if (f.exists()) {
@@ -91,7 +90,7 @@ public class DurationCollector2 {
 				sleepUntilStart();
 				int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 				for (CollectionParams cp : collectionParams) {
-					if (hour < 13) { // switch directions at 12 noon.
+					if (hour < 12) { // switch directions at 12 noon.
 						origin = cp.homeLocation;
 						destination = cp.workLocation;
 					} else {
@@ -132,7 +131,8 @@ public class DurationCollector2 {
 			start.set(Calendar.HOUR_OF_DAY, 4);
 			start.set(Calendar.MINUTE, 0);
 			long millis = start.getTimeInMillis() - now.getTimeInMillis();
-			System.out.println("About to sleep for " + (millis / 60000) + " minutes.");
+			long minutes = (millis / 60000);
+			System.out.println("About to sleep for " + (minutes / 60) + " hours, " + (minutes % 60) + " minutes.");
 			Thread.sleep(millis);
 		}
 	}
@@ -164,22 +164,55 @@ public class DurationCollector2 {
 			}
 		}
 	}
-	
-	public void run(String[] args) {
-		collectionParams = new CollectionParams[1];
-		collectionParams[0] = new CollectionParams("ckeith", 
+
+	private void loadCollectionParams(String[] args) throws Exception {
+		collectionParams = new ArrayList<CollectionParams>(1);
+		if (args.length == 1) {
+			File otherCollectionParams = new File(args[0]);
+			if (!otherCollectionParams.exists()) {
+				throw new RuntimeException("Can't find: " + otherCollectionParams.getAbsolutePath());
+			}
+			BufferedReader br = new BufferedReader(new FileReader(args[0]));
+		    try {
+		        String personId = br.readLine();
+		        while (personId != null) {
+		        	String home = br.readLine();
+		        	if (home == null) {
+						throw new RuntimeException("Home not specified for: " + personId);
+		        	}
+		        	String work = br.readLine();
+		        	if (work == null) {
+						throw new RuntimeException("Work not specified for: " + personId);
+		        	}
+		        	collectionParams.add(new CollectionParams(personId, home, work));
+		        	personId = br.readLine();
+		        }
+		    } finally {
+		        br.close();
+		    }
+		}
+		// Add this one last, so the browser shows it (to help debugging/monitoring).
+		collectionParams.add(new CollectionParams("ChristopherKeith", 
 				"368 MacArthur Blvd, San Leandro, CA 94577",
-				"3200 Bridge Pkwy Redwood City, CA");
-		File dir = new File(directory);
+				"3200 Bridge Pkwy Redwood City, CA"));
+	}
+	
+	public void run(String[] args) throws Exception {
+		File dir = new File(dirForResults);
 		if (!dir.exists()) {
 			if (!dir.mkdir()) {
 				throw new RuntimeException("Unable to create: " + dir.getAbsolutePath());
 			}
 		}
+		loadCollectionParams(args);
 		runWithRetries();
 	}
 
 	public static void main(String[] args) {
-		new DurationCollector2().run(args);
+		try {
+			new DurationCollector2().run(args);
+		} catch (Exception e) {
+			System.out.println(e);
+		}
 	}
 }
