@@ -36,9 +36,13 @@ public class DurationCollector2 {
 	List<CollectionParams> collectionParams;
 	final private String dirForResults = "/tmp";
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
+
+	// Sample every two minutes.
+	final private int minuteInterval = 2;
 	
 	// A format that will convert to a date when pasted into a Google spreadsheet.
-	final private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+	// Bucket-ize into n-minute buckets.
+	final private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 
 	private int collectDuration(WebDriver driver, String origin, String destination)
 			throws Exception {
@@ -100,9 +104,7 @@ public class DurationCollector2 {
 					int newDuration = this.collectDuration(driver, origin, destination);
 					writeDuration(cp.personId, new Date(), newDuration);
 				}
-				// Sample every two minutes.
-				// For The Future : possibly randomize the sleep time.
-				Thread.sleep(2 * 60 * 1000);
+				Thread.sleep(minuteInterval * 60 * 1000);
 			}
 	}
 	
@@ -124,17 +126,20 @@ public class DurationCollector2 {
 				dayIncrement = 1;
 			}
 		}
+		Calendar start = (Calendar)now.clone();
 		if (dayIncrement > 0) {
-			Calendar start = Calendar.getInstance();
 			// TODO : Will this work on Dec 31?
 			start.set(Calendar.DAY_OF_YEAR, start.get(Calendar.DAY_OF_YEAR) + dayIncrement);
 			start.set(Calendar.HOUR_OF_DAY, 4);
 			start.set(Calendar.MINUTE, 0);
-			long millis = start.getTimeInMillis() - now.getTimeInMillis();
-			long minutes = (millis / 60000);
-			System.out.println("About to sleep for " + (minutes / 60) + " hours, " + (minutes % 60) + " minutes.");
-			Thread.sleep(millis);
+		} else {
+			// Sync to next minuteInterval bucket.
+			start.set(Calendar.MINUTE, (start.get(Calendar.MINUTE) + minuteInterval) / minuteInterval);
 		}
+		long millis = start.getTimeInMillis() - now.getTimeInMillis();
+		long minutes = (millis / 60000);
+		System.out.println("About to sleep for " + (minutes / 60) + " hours, " + (minutes % 60) + " minutes.");
+		Thread.sleep(millis);
 	}
 	
 	private void writeDuration(String personId, Date date, int duration) throws Exception {
