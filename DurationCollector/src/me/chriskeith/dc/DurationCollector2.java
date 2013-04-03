@@ -33,16 +33,26 @@ public class DurationCollector2 {
 		}
 	}
 	
-	List<CollectionParams> collectionParams;
+	private List<CollectionParams> collectionParams;
 	final private String dirForResults = "/tmp";
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
-
+	final private String otherCollectionParamsFileName;
+	
 	// Sample every two minutes.
 	final private int minuteInterval = 2;
 	
 	// A format that will convert to a date when pasted into a Google spreadsheet.
-	// Bucket-ize into n-minute buckets.
-	final private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+	final private SimpleDateFormat outputDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
+
+	final private SimpleDateFormat debuggingDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
+	public DurationCollector2(String[] args) {
+		if (args.length > 0) {
+			otherCollectionParamsFileName = args[0];
+		} else {
+			otherCollectionParamsFileName = null;
+		}
+	}
 
 	private int collectDuration(WebDriver driver, String origin, String destination)
 			throws Exception {
@@ -91,7 +101,7 @@ public class DurationCollector2 {
 			String origin;
 			String destination;
 			while (true) {
-				sleepUntilStart();
+				sleepUntilNextSnapshot();
 				int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 				for (CollectionParams cp : collectionParams) {
 					if (hour < 12) { // switch directions at 12 noon.
@@ -104,11 +114,10 @@ public class DurationCollector2 {
 					int newDuration = this.collectDuration(driver, origin, destination);
 					writeDuration(cp.personId, new Date(), newDuration);
 				}
-				Thread.sleep(minuteInterval * 60 * 1000);
 			}
 	}
 	
-	private void sleepUntilStart() throws Exception {
+	private void sleepUntilNextSnapshot() throws Exception {
 		Calendar now = Calendar.getInstance();
 		int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
 		int dayIncrement = 0;
@@ -132,20 +141,25 @@ public class DurationCollector2 {
 			start.set(Calendar.DAY_OF_YEAR, start.get(Calendar.DAY_OF_YEAR) + dayIncrement);
 			start.set(Calendar.HOUR_OF_DAY, 4);
 			start.set(Calendar.MINUTE, 0);
+			
+			// Reload in case we've edited the list of routes.
+			loadCollectionParams();
 		} else {
-			// Sync to next minuteInterval bucket.
-			start.set(Calendar.MINUTE, (start.get(Calendar.MINUTE) + minuteInterval) / minuteInterval);
+			// Round to previous minute instant.
+			int lastInstant = (start.get(Calendar.MINUTE) / minuteInterval) * minuteInterval;
+			// Sync to next minuteInterval instant.
+			start.set(Calendar.MINUTE, (lastInstant + minuteInterval));
 		}
+		start.set(Calendar.SECOND, 0);
 		long millis = start.getTimeInMillis() - now.getTimeInMillis();
-		long minutes = (millis / 60000);
-		System.out.println("About to sleep for " + (minutes / 60) + " hours, " + (minutes % 60) + " minutes.");
+		System.out.println("About to sleep until " + this.debuggingDateFormat.format(new Date(start.getTimeInMillis())));
 		Thread.sleep(millis);
 	}
 	
 	private void writeDuration(String personId, Date date, int duration) throws Exception {
 		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
 			BufferedWriter out = this.getWrite(personId);
-			String s = dateFormat.format(date) + "\t" + duration;
+			String s = outputDateFormat.format(date) + "\t" + duration;
 			out.write(s + System.getProperty("line.separator"));
 			out.flush();
 			System.out.println(s);
@@ -170,14 +184,14 @@ public class DurationCollector2 {
 		}
 	}
 
-	private void loadCollectionParams(String[] args) throws Exception {
+	private void loadCollectionParams() throws Exception {
 		collectionParams = new ArrayList<CollectionParams>(1);
-		if (args.length == 1) {
-			File otherCollectionParams = new File(args[0]);
+		if (otherCollectionParamsFileName != null) {
+			File otherCollectionParams = new File(otherCollectionParamsFileName);
 			if (!otherCollectionParams.exists()) {
 				throw new RuntimeException("Can't find: " + otherCollectionParams.getAbsolutePath());
 			}
-			BufferedReader br = new BufferedReader(new FileReader(args[0]));
+			BufferedReader br = new BufferedReader(new FileReader(otherCollectionParamsFileName));
 		    try {
 		        String personId = br.readLine();
 		        while (personId != null) {
@@ -202,20 +216,20 @@ public class DurationCollector2 {
 				"3200 Bridge Pkwy Redwood City, CA"));
 	}
 	
-	public void run(String[] args) throws Exception {
+	public void run() throws Exception {
 		File dir = new File(dirForResults);
 		if (!dir.exists()) {
 			if (!dir.mkdir()) {
 				throw new RuntimeException("Unable to create: " + dir.getAbsolutePath());
 			}
 		}
-		loadCollectionParams(args);
+		loadCollectionParams();
 		runWithRetries();
 	}
 
 	public static void main(String[] args) {
 		try {
-			new DurationCollector2().run(args);
+			new DurationCollector2(args).run();
 		} catch (Exception e) {
 			System.out.println(e);
 		}
