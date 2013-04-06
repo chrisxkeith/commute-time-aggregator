@@ -46,6 +46,8 @@ public class DurationCollector2 {
 
 	final private SimpleDateFormat debuggingDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
+	private WebDriver driver = null;
+
 	public DurationCollector2(String[] args) {
 		if (args.length > 0) {
 			otherCollectionParamsFileName = args[0];
@@ -54,33 +56,46 @@ public class DurationCollector2 {
 		}
 	}
 
-	private int collectDuration(WebDriver driver, String origin, String destination)
+	private int collectDuration(String origin, String destination)
 			throws Exception {
-		driver.get("https://maps.google.com/");
-		driver.findElement(By.id("d_launch")).click();
-		driver.findElement(By.id("d_d")).clear();
-		driver.findElement(By.id("d_d")).sendKeys(origin);
-		driver.findElement(By.id("d_daddr")).clear();
-		driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
-// Started being erratic... Replaced with \n above.
-//		driver.findElement(By.id("d_sub")).click();
-		
-		// GMaps can show multiple alternative routes. Use the quickest.
-		List<WebElement> wList = driver.findElements(By
-				.xpath("//span[contains(text(), \"In current traffic: \")]"));
 		int minutes = Integer.MAX_VALUE;
-		for (WebElement w : wList) {
-			Matcher m = digitPattern.matcher(w.getText());
-			if (m.find()) {
-				int newVal = Integer.parseInt(m.group());
+		try {
+			driver.get("https://maps.google.com/");
+			driver.findElement(By.id("d_launch")).click();
+			driver.findElement(By.id("d_d")).clear();
+			driver.findElement(By.id("d_d")).sendKeys(origin);
+			driver.findElement(By.id("d_daddr")).clear();
+			driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
+			// Started being erratic... Replaced with \n above.
+			// driver.findElement(By.id("d_sub")).click();
+
+			// GMaps can show multiple alternative routes. Use the quickest.
+			List<WebElement> wList = driver
+					.findElements(By
+							.xpath("//span[contains(text(), \"In current traffic: \")]"));
+			for (WebElement w : wList) {
+				Matcher m = digitPattern.matcher(w.getText());
 				if (m.find()) {
-					// First number was hour(s).
-					newVal = (newVal * 60) + Integer.parseInt(m.group());
-				}
-				if (newVal < minutes) {
-					minutes = newVal;
+					int newVal = Integer.parseInt(m.group());
+					if (m.find()) {
+						// First number was hour(s).
+						newVal = (newVal * 60) + Integer.parseInt(m.group());
+					}
+					if (newVal < minutes) {
+						minutes = newVal;
+					}
 				}
 			}
+		} catch (Exception e) {
+			// Switching networks (e.g., logging into a VPN) can cause an exception.
+			// Shut down the driver and Firefox and restart for the next time slot.
+			System.out.println(new Date().toString()
+					+ System.getProperty("line.separator") + e);
+			if (driver != null) {
+				driver.quit();
+			}
+			driver = new FirefoxDriver();
+			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 		}
 		return minutes;
 	}
@@ -97,7 +112,7 @@ public class DurationCollector2 {
 		return new BufferedWriter(fstream);
 	}
 
-	private void collectDurations(WebDriver driver) throws Exception {
+	private void collectDurations() throws Exception {
 			String origin;
 			String destination;
 			while (true) {
@@ -111,7 +126,7 @@ public class DurationCollector2 {
 						origin = cp.workLocation;
 						destination = cp.homeLocation;
 					}
-					int newDuration = this.collectDuration(driver, origin, destination);
+					int newDuration = this.collectDuration(origin, destination);
 					writeDuration(cp.personId, new Date(), newDuration);
 				}
 			}
@@ -129,7 +144,11 @@ public class DurationCollector2 {
 			int hour = now.get(Calendar.HOUR_OF_DAY);
 			// If outside the 8 p.m. to 4 a.m. range, sleep until 4 a.m.
 			if (19 < hour) {
-				dayIncrement = 1;
+				if (dayOfWeek == Calendar.FRIDAY) {
+					dayIncrement = 3;
+				} else {
+					dayIncrement = 1;
+				}
 			}
 			if (hour < 4) {
 				dayIncrement = 1;
@@ -157,9 +176,10 @@ public class DurationCollector2 {
 	}
 	
 	private void writeDuration(String personId, Date date, int duration) throws Exception {
-		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
+		if (0 < duration) {
 			BufferedWriter out = this.getWrite(personId);
-			String s = outputDateFormat.format(date) + "\t" + duration;
+			// If we didn't get a value, write an empty slot to keep slots in sync.
+			String s = outputDateFormat.format(date) + "\t" + ((duration < Integer.MAX_VALUE) ? duration : "");
 			out.write(s + System.getProperty("line.separator"));
 			out.flush();
 			System.out.println(s);
@@ -168,18 +188,15 @@ public class DurationCollector2 {
 	}
 	
 	private void runWithRetries() {
-		for (int retries = 0; retries < 5; retries++) {
-			WebDriver driver = null;
-			try {
-				driver = new FirefoxDriver();
-				driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
-				collectDurations(driver);
-			} catch (Exception e) {
-				System.out.println(new Date().toString() + System.getProperty("line.separator") + e);
-			} finally {
-				if (driver != null) {
-					driver.quit();
-				}
+		try {
+			driver = new FirefoxDriver();
+			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+			collectDurations();
+		} catch (Exception e) {
+			System.out.println(new Date().toString() + System.getProperty("line.separator") + e);
+		} finally {
+			if (driver != null) {
+				driver.quit();
 			}
 		}
 	}
