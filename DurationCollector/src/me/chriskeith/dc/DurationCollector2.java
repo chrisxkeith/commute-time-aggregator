@@ -58,6 +58,7 @@ public class DurationCollector2 {
 
 	private int collectDuration(String origin, String destination)
 			throws Exception {
+		initFireFoxDriver();
 		int minutes = Integer.MAX_VALUE;
 		try {
 			driver.get("https://maps.google.com/");
@@ -66,7 +67,7 @@ public class DurationCollector2 {
 			driver.findElement(By.id("d_d")).sendKeys(origin);
 			driver.findElement(By.id("d_daddr")).clear();
 			driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
-			// Started being erratic... Replaced with \n above.
+			// Started being erratic... Replaced "Get Directions" click with \n above.
 			// driver.findElement(By.id("d_sub")).click();
 
 			// GMaps can show multiple alternative routes. Use the quickest.
@@ -93,13 +94,20 @@ public class DurationCollector2 {
 					+ System.getProperty("line.separator") + e);
 			if (driver != null) {
 				driver.quit();
+				driver = null;
 			}
-			driver = new FirefoxDriver();
-			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+			initFireFoxDriver();
 		}
 		return minutes;
 	}
 
+	private void initFireFoxDriver() {
+		if (driver == null) {
+			driver = new FirefoxDriver();
+			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+		}
+	}
+	
 	private BufferedWriter getWrite(String personId) throws Exception {
 		String filePathString = dirForResults + "/" + personId + "_commuteTimes.txt";
 		FileWriter fstream;
@@ -156,12 +164,12 @@ public class DurationCollector2 {
 		}
 		Calendar start = (Calendar)now.clone();
 		if (dayIncrement > 0) {
-			// TODO : Will this work on Dec 31?
+			// Assume (till proved otherwise) that this will this work on the last day of the year.
 			start.set(Calendar.DAY_OF_YEAR, start.get(Calendar.DAY_OF_YEAR) + dayIncrement);
 			start.set(Calendar.HOUR_OF_DAY, 4);
 			start.set(Calendar.MINUTE, 0);
 			
-			// Reload in case we've edited the list of routes.
+			// Reload in case we've manually edited the file containing the list of routes.
 			loadCollectionParams();
 		} else {
 			// Round to previous minute instant.
@@ -178,7 +186,7 @@ public class DurationCollector2 {
 	private void writeDuration(String personId, Date date, int duration) throws Exception {
 		if (0 < duration) {
 			BufferedWriter out = this.getWrite(personId);
-			// If we didn't get a value, write an empty slot to keep slots in sync.
+			// If we didn't get a value, write an empty slot to keep slots across different days in sync.
 			String s = outputDateFormat.format(date) + "\t" + ((duration < Integer.MAX_VALUE) ? duration : "");
 			out.write(s + System.getProperty("line.separator"));
 			out.flush();
@@ -189,8 +197,6 @@ public class DurationCollector2 {
 	
 	private void runWithRetries() {
 		try {
-			driver = new FirefoxDriver();
-			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 			collectDurations();
 		} catch (Exception e) {
 			System.out.println(new Date().toString() + System.getProperty("line.separator") + e);
