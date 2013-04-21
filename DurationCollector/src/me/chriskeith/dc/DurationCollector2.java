@@ -175,10 +175,15 @@ public class DurationCollector2 {
 		}
 
 		public String toString() {
-			return outputDateFormat.format(new Date(date.getTimeInMillis())) + "\t" + duration;
+			String ret = outputDateFormat.format(new Date(date.getTimeInMillis())) + "\t";
+			if (duration == null) {
+				return ret;
+			}
+			return ret + duration;
 		}
 	}
 
+	// TODO : not working correctly yet.
 	private void cleanUpExistingData() {
 		for (CollectionParams cp : collectionParams) {
 			try {
@@ -203,7 +208,12 @@ public class DurationCollector2 {
 							previousDuration.increment();
 						}
 						output.add(s);
-						previousDuration = nextDuration;
+						int dayIncrement = getDayIncrement(nextDuration.date);
+						if (dayIncrement > 0) {
+							previousDuration.date = getNextSlot(nextDuration.date, dayIncrement);
+						} else {
+							previousDuration = nextDuration;
+						}
 					}
 					writeStringList(output, cp.personId);
 				}
@@ -230,8 +240,7 @@ public class DurationCollector2 {
 		}
 	}
 
-	private void sleepUntilNextSnapshot() throws Exception {
-		Calendar now = Calendar.getInstance();
+	private int getDayIncrement(Calendar now) {
 		int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
 		int dayIncrement = 0;
 		if (dayOfWeek == Calendar.SATURDAY) {
@@ -240,8 +249,6 @@ public class DurationCollector2 {
 			dayIncrement = 1;
 		} else {
 			int hour = now.get(Calendar.HOUR_OF_DAY);
-			// If outside the range during which to record durations, sleep
-			// until within the range.
 			if (hour < firstHour) {
 				dayIncrement = 1;
 			} else if (lastHour < hour) {
@@ -252,8 +259,14 @@ public class DurationCollector2 {
 				}
 			}
 		}
+		return dayIncrement;
+	}
+
+	private Calendar getNextSlot(Calendar now, int dayIncrement) {
 		Calendar start = (Calendar) now.clone();
 		if (dayIncrement > 0) {
+			// If outside the range during which to record durations, sleep
+			// until within the range.
 			// Assume (till proved otherwise) that this will this work on the
 			// last day of the year.
 			start.set(Calendar.DAY_OF_YEAR, start.get(Calendar.DAY_OF_YEAR)
@@ -261,9 +274,6 @@ public class DurationCollector2 {
 			start.set(Calendar.HOUR_OF_DAY, 4);
 			start.set(Calendar.MINUTE, 0);
 
-			// Reload in case we've manually edited the file containing the list
-			// of routes.
-			loadCollectionParams();
 		} else {
 			// Round to previous minute instant.
 			int lastInstant = (start.get(Calendar.MINUTE) / minuteInterval)
@@ -272,13 +282,23 @@ public class DurationCollector2 {
 			start.set(Calendar.MINUTE, (lastInstant + minuteInterval));
 		}
 		start.set(Calendar.SECOND, 0);
-		long millis = start.getTimeInMillis() - now.getTimeInMillis();
+		return start;
+	}
+	
+	private void sleepUntilNextSnapshot() throws Exception {
+		Calendar now = Calendar.getInstance();
+		int dayIncrement = getDayIncrement(now);
+		Calendar start = getNextSlot(now, dayIncrement);
 		if (dayIncrement > 0) {
+			// Reload in case we've manually edited the file containing the list
+			// of routes.
+			loadCollectionParams();
 			System.out
 					.println("About to sleep until "
 							+ outputDateFormat.format(new Date(start
 									.getTimeInMillis())));
 		}
+		long millis = start.getTimeInMillis() - now.getTimeInMillis();
 		Thread.sleep(millis);
 	}
 
@@ -291,8 +311,7 @@ public class DurationCollector2 {
 		if (previousSlot != null) {
 			previousSlot.add(Calendar.MINUTE, this.minuteInterval);
 			// If we didn't get a value, write empty slot(s) to keep slots
-			// across
-			// different days in sync.
+			// across different days in sync.
 			while (previousSlot.getTimeInMillis() < now.getTimeInMillis()) {
 				String s = outputDateFormat.format(new Date(now
 						.getTimeInMillis()))
