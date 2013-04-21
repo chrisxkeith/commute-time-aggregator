@@ -1,22 +1,28 @@
 package me.chriskeith.dc;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import java.util.regex.*;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 /**
- * Ping google maps for estimated commute duration. Write duration and time stamp to tab-separated file.
- * To get better data while running:
- * - Don't manually close Firefox window.
- * - Don't switch networks (e.g., log into a VPN).
- * Assume : Java VM is running in the appropriate time zone.
+ * Ping google maps for estimated commute duration. Write duration and time
+ * stamp to tab-separated file. To get better data while running: (1) Don't
+ * manually close Firefox window. (2) Don't switch networks (e.g., log into a
+ * VPN). Assume : Java VM is running in the appropriate time zone.
+ * 
  * @author ckeith
  */
 public class DurationCollector2 {
@@ -37,6 +43,8 @@ public class DurationCollector2 {
 	final private String dirForResults = "/tmp";
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 	final private String otherCollectionParamsFileName;
+	final private int firstHour = 4; // 4 am
+	final private int lastHour = 19; // 8 pm
 
 	// Sample every two minutes.
 	final private int minuteInterval = 2;
@@ -69,7 +77,8 @@ public class DurationCollector2 {
 			driver.findElement(By.id("d_d")).sendKeys(origin);
 			driver.findElement(By.id("d_daddr")).clear();
 			driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
-			// Started being erratic... Replaced "Get Directions" click with \n above.
+			// Started being erratic... Replaced "Get Directions" click with \n
+			// above.
 			// driver.findElement(By.id("d_sub")).click();
 
 			// GMaps can show multiple alternative routes. Use the quickest.
@@ -90,8 +99,10 @@ public class DurationCollector2 {
 				}
 			}
 		} catch (Exception e) {
-			// Switching networks (e.g., logging into a VPN) can cause an exception.
-			// Shut down the driver and Firefox and restart for the next time slot.
+			// Switching networks (e.g., logging into a VPN) can cause an
+			// exception.
+			// Shut down the driver and Firefox and restart for the next time
+			// slot.
 			System.out.println(new Date().toString()
 					+ System.getProperty("line.separator") + e);
 			if (driver != null) {
@@ -140,6 +151,82 @@ public class DurationCollector2 {
 				int newDuration = this.collectDuration(origin, destination);
 				writeDuration(cp.personId, newDuration);
 			}
+			cleanUpExistingData();
+		}
+	}
+
+	private class Duration {
+		public Calendar date;
+		public String duration;
+
+		public Duration(String s) throws ParseException {
+			String[] vals = s.split("\t");
+			date = new GregorianCalendar();
+			date.setTime(outputDateFormat.parse(vals[0]));
+			if (vals.length > 1) {
+				duration = vals[1];
+			}
+		}
+
+		public void increment() {
+			date.set(Calendar.MINUTE, date.get(Calendar.MINUTE)
+					+ minuteInterval);
+
+		}
+
+		public String toString() {
+			return outputDateFormat.format(new Date(date.getTimeInMillis())) + "\t" + duration;
+		}
+	}
+
+	private void cleanUpExistingData() {
+		for (CollectionParams cp : collectionParams) {
+			try {
+				File f = new File(dirForResults + "/" + cp.personId
+						+ "_commuteTimes.txt");
+				if (f.exists()) {
+					Path filePath = f.toPath();
+					Charset charset = Charset.defaultCharset();
+					List<String> output = new ArrayList<String>();
+					List<String> stringList = Files.readAllLines(filePath,
+							charset);
+					Iterator<String> it = stringList.iterator();
+					String s = it.next();
+					output.add(s);
+					Duration previousDuration = new Duration(s);
+					while (it.hasNext()) {
+						s = it.next();
+						Duration nextDuration = new Duration(s);
+						previousDuration.increment();
+						while (previousDuration.date.before(nextDuration.date)) {
+							output.add(previousDuration.toString());
+							previousDuration.increment();
+						}
+						output.add(s);
+						previousDuration = nextDuration;
+					}
+					writeStringList(output, cp.personId);
+				}
+			} catch (Exception e) {
+				log(e);
+			}
+		}
+	}
+
+	private void writeStringList(List<String> output, String personId)
+			throws Exception {
+		BufferedWriter out = null;
+		try {
+			out = this.getWriter(personId);
+			for (String s : output) {
+				out.write(s + System.getProperty("line.separator"));
+			}
+		} catch (Exception e) {
+			log(e);
+		} finally {
+			if (out != null) {
+				out.close();
+			}
 		}
 	}
 
@@ -153,16 +240,16 @@ public class DurationCollector2 {
 			dayIncrement = 1;
 		} else {
 			int hour = now.get(Calendar.HOUR_OF_DAY);
-			// If inside the 8 p.m. to 4 a.m. range, sleep until 4 a.m.
-			if (19 < hour) {
+			// If outside the range during which to record durations, sleep
+			// until within the range.
+			if (hour < firstHour) {
+				dayIncrement = 1;
+			} else if (lastHour < hour) {
 				if (dayOfWeek == Calendar.FRIDAY) {
 					dayIncrement = 3;
 				} else {
 					dayIncrement = 1;
 				}
-			}
-			if (hour < 4) {
-				dayIncrement = 1;
 			}
 		}
 		Calendar start = (Calendar) now.clone();
@@ -199,12 +286,13 @@ public class DurationCollector2 {
 		Calendar now = Calendar.getInstance();
 		// Is it possible that "now" will be more than one minute past the slot?
 		now.set(Calendar.SECOND, 0);
-		// If we didn't get a value, write empty slot(s) to keep slots across
-		// different days in sync.
 		String durationStr = "";
 		BufferedWriter out = this.getWriter(personId);
 		if (previousSlot != null) {
 			previousSlot.add(Calendar.MINUTE, this.minuteInterval);
+			// If we didn't get a value, write empty slot(s) to keep slots
+			// across
+			// different days in sync.
 			while (previousSlot.getTimeInMillis() < now.getTimeInMillis()) {
 				String s = outputDateFormat.format(new Date(now
 						.getTimeInMillis()))
@@ -275,13 +363,17 @@ public class DurationCollector2 {
 			loadCollectionParams();
 			collectDurations();
 		} catch (Exception e) {
-			e.printStackTrace();
-			System.out.println(new Date().toString() + e);
+			log(e);
 		} finally {
 			if (driver != null) {
 				driver.quit();
 			}
 		}
+	}
+
+	private void log(Exception e) {
+		e.printStackTrace();
+		System.out.println(new Date().toString() + e);
 	}
 
 	public static void main(String[] args) {
