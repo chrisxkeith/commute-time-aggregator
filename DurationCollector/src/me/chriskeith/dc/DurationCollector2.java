@@ -151,7 +151,7 @@ public class DurationCollector2 {
 				int newDuration = this.collectDuration(origin, destination);
 				writeDuration(cp.personId, newDuration);
 			}
-			cleanUpExistingData();
+//			cleanUpExistingData();
 		}
 	}
 
@@ -196,26 +196,30 @@ public class DurationCollector2 {
 					List<String> stringList = Files.readAllLines(filePath,
 							charset);
 					Iterator<String> it = stringList.iterator();
-					String s = it.next();
-					output.add(s);
-					Duration previousDuration = new Duration(s);
-					while (it.hasNext()) {
-						s = it.next();
-						Duration nextDuration = new Duration(s);
-						previousDuration.increment();
-						while (previousDuration.date.before(nextDuration.date)) {
-							output.add(previousDuration.toString());
-							previousDuration.increment();
-						}
+					if (it.hasNext()) {
+						String s = it.next();
 						output.add(s);
-						int dayIncrement = getDayIncrement(nextDuration.date);
-						if (dayIncrement > 0) {
-							previousDuration.date = getNextSlot(nextDuration.date, dayIncrement);
-						} else {
-							previousDuration = nextDuration;
+						Duration previousDuration = new Duration(s);
+						while (it.hasNext()) {
+							s = it.next();
+							Duration nextDuration = new Duration(s);
+							previousDuration.increment();
+							while (previousDuration.date.before(nextDuration.date)) {
+								output.add(previousDuration.toString());
+								previousDuration.increment();
+							}
+							output.add(s);
+							nextDuration.increment();
+							int dayIncrement = getDayIncrement(nextDuration.date);
+							if (dayIncrement > 0) {
+								previousDuration.date = getNextSlot(nextDuration.date, dayIncrement);
+								previousDuration.duration = null;
+							} else {
+								previousDuration = nextDuration;
+							}
 						}
+						writeStringList(output, cp.personId);
 					}
-					writeStringList(output, cp.personId);
 				}
 			} catch (Exception e) {
 				log(e);
