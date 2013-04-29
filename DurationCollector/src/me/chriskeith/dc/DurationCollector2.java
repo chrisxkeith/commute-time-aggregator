@@ -44,7 +44,7 @@ public class DurationCollector2 {
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 	final private String otherCollectionParamsFileName;
 	final private int firstHour = 4; // 4 am
-	final private int lastHour = 19; // 8 pm
+	final private int lastHour = 20; // 8 pm, inclusive. E.g., actually up to 9 pm
 
 	// Sample every two minutes.
 	final private int minuteInterval = 2;
@@ -151,7 +151,6 @@ public class DurationCollector2 {
 				int newDuration = this.collectDuration(origin, destination);
 				writeDuration(cp.personId, newDuration);
 			}
-//			cleanUpExistingData();
 		}
 	}
 
@@ -181,9 +180,21 @@ public class DurationCollector2 {
 			}
 			return ret + duration;
 		}
+		
+		public Duration toStart() throws ParseException {
+			Duration ret = new Duration(this.toString());
+			ret.date.set(Calendar.HOUR, firstHour);
+			return ret;
+		}
+		
+		public Duration toEnd() throws ParseException {
+			Duration ret = new Duration(this.toString());
+			ret.date.set(Calendar.HOUR, lastHour + 1);
+			return ret;
+		}
 	}
 
-	// TODO : not working correctly yet.
+	// TODO : validate and test.
 	private void cleanUpExistingData() {
 		for (CollectionParams cp : collectionParams) {
 			try {
@@ -191,39 +202,54 @@ public class DurationCollector2 {
 						+ "_commuteTimes.txt");
 				if (f.exists()) {
 					Path filePath = f.toPath();
-					Charset charset = Charset.defaultCharset();
 					List<String> output = new ArrayList<String>();
 					List<String> stringList = Files.readAllLines(filePath,
-							charset);
+							Charset.defaultCharset());
 					Iterator<String> it = stringList.iterator();
-					if (it.hasNext()) {
-						String s = it.next();
-						output.add(s);
-						Duration previousDuration = new Duration(s);
-						while (it.hasNext()) {
-							s = it.next();
-							Duration nextDuration = new Duration(s);
-							previousDuration.increment();
+					if (!it.hasNext()) {
+						break;
+					}
+					Duration previousDuration = new Duration(it.next());
+					fillStart(output, previousDuration);
+					output.add(previousDuration.toString());
+					while (it.hasNext()) {
+						Duration nextDuration = new Duration(it.next());
+						if (nextDuration.date.get(Calendar.DAY_OF_YEAR) > previousDuration.date.get(Calendar.DAY_OF_YEAR)) {
+							fillEnd(output, previousDuration);
+							fillStart(output, nextDuration);
+						} else {
 							while (previousDuration.date.before(nextDuration.date)) {
 								output.add(previousDuration.toString());
 								previousDuration.increment();
 							}
-							output.add(s);
-							nextDuration.increment();
-							int dayIncrement = getDayIncrement(nextDuration.date);
-							if (dayIncrement > 0) {
-								previousDuration.date = getNextSlot(nextDuration.date, dayIncrement);
-								previousDuration.duration = null;
-							} else {
-								previousDuration = nextDuration;
-							}
 						}
+						output.add(nextDuration.toString());
+						previousDuration = nextDuration;
+					}
+					if (output.size() > 0) {
+						fillEnd(output, previousDuration);
 						writeStringList(output, cp.personId);
 					}
 				}
 			} catch (Exception e) {
 				log(e);
 			}
+		}
+	}
+
+	private void fillEnd(List<String> output, Duration previousDuration) throws ParseException {
+		Duration end = previousDuration.toEnd();
+		while (previousDuration.date.before(end.date)) {
+			output.add(previousDuration.toString());
+			previousDuration.increment();
+		}
+	}
+
+	private void fillStart(List<String> output, Duration previousDuration) throws ParseException {
+		Duration start = previousDuration.toStart();
+		while (start.date.before(previousDuration.date)) {
+			output.add(start.toString());
+			start.increment();
 		}
 	}
 
@@ -255,7 +281,7 @@ public class DurationCollector2 {
 			int hour = now.get(Calendar.HOUR_OF_DAY);
 			if (hour < firstHour) {
 				dayIncrement = 1;
-			} else if (lastHour < hour) {
+			} else if (lastHour <= hour) {
 				if (dayOfWeek == Calendar.FRIDAY) {
 					dayIncrement = 3;
 				} else {
@@ -301,6 +327,7 @@ public class DurationCollector2 {
 					.println("About to sleep until "
 							+ outputDateFormat.format(new Date(start
 									.getTimeInMillis())));
+			// cleanUpExistingData();
 		}
 		long millis = start.getTimeInMillis() - now.getTimeInMillis();
 		Thread.sleep(millis);
