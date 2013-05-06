@@ -121,13 +121,13 @@ public class DurationCollector2 {
 		}
 	}
 
-	private BufferedWriter getWriter(String personId) throws Exception {
+	private BufferedWriter getWriter(String personId, boolean doAppend) throws Exception {
 		String filePathString = dirForResults + "/" + personId
 				+ "_commuteTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
 		if (f.exists()) {
-			fstream = new FileWriter(filePathString, true);
+			fstream = new FileWriter(filePathString, doAppend);
 		} else {
 			fstream = new FileWriter(filePathString);
 		}
@@ -182,14 +182,19 @@ public class DurationCollector2 {
 		}
 		
 		public Duration toStart() throws ParseException {
-			Duration ret = new Duration(this.toString());
-			ret.date.set(Calendar.HOUR, firstHour);
-			return ret;
+			return toEndPoint(firstHour);
 		}
 		
 		public Duration toEnd() throws ParseException {
+			return toEndPoint(lastHour + 1);
+		}
+		
+		public Duration toEndPoint(int hour) throws ParseException {
 			Duration ret = new Duration(this.toString());
-			ret.date.set(Calendar.HOUR, lastHour + 1);
+			ret.date.set(Calendar.HOUR, hour);
+			ret.date.set(Calendar.MINUTE, 0);
+			ret.date.set(Calendar.SECOND, 0);
+			ret.duration = null; // don't add potentially misleading data.
 			return ret;
 		}
 	}
@@ -238,10 +243,11 @@ public class DurationCollector2 {
 	}
 
 	private void fillEnd(List<String> output, Duration previousDuration) throws ParseException {
-		Duration end = previousDuration.toEnd();
-		while (previousDuration.date.before(end.date)) {
-			output.add(previousDuration.toString());
-			previousDuration.increment();
+		Duration d = new Duration(previousDuration.toString());
+		Duration end = d.toEnd();
+		while (d.date.before(end.date)) {
+			output.add(d.toString());
+			d.increment();
 		}
 	}
 
@@ -257,7 +263,7 @@ public class DurationCollector2 {
 			throws Exception {
 		BufferedWriter out = null;
 		try {
-			out = this.getWriter(personId);
+			out = this.getWriter(personId, false);
 			for (String s : output) {
 				out.write(s + System.getProperty("line.separator"));
 			}
@@ -338,7 +344,7 @@ public class DurationCollector2 {
 		// Is it possible that "now" will be more than one minute past the slot?
 		now.set(Calendar.SECOND, 0);
 		String durationStr = "";
-		BufferedWriter out = this.getWriter(personId);
+		BufferedWriter out = this.getWriter(personId, true);
 		if (previousSlot != null) {
 			previousSlot.add(Calendar.MINUTE, this.minuteInterval);
 			// If we didn't get a value, write empty slot(s) to keep slots
@@ -347,7 +353,6 @@ public class DurationCollector2 {
 				String s = outputDateFormat.format(new Date(now
 						.getTimeInMillis()))
 						+ "\t"
-						+ durationStr
 						+ System.getProperty("line.separator");
 				out.write(s);
 				previousSlot.add(Calendar.MINUTE, this.minuteInterval);
