@@ -99,14 +99,17 @@ public class DurationCollector2 {
 				}
 			}
 		} catch (Exception e) {
-			// Switching networks (e.g., logging into a VPN) can cause an
-			// exception.
-			// Shut down the driver and Firefox and restart for the next time
-			// slot.
-			System.out.println(new Date().toString()
-					+ System.getProperty("line.separator") + e);
+			// Switching networks (e.g., logging into a VPN)
+			// can cause an exception.
+			// Shut down the driver and Firefox
+			// and restart for the next time slot.
+			log("During WebDriver interaction", e);
 			if (driver != null) {
-				driver.quit();
+				try {
+					driver.quit();
+				} catch (Exception e2) {
+					log("During driver.quit()", e);
+				}
 				driver = null;
 			}
 			initFireFoxDriver();
@@ -114,6 +117,13 @@ public class DurationCollector2 {
 		return minutes;
 	}
 
+	private void log(String s, Object o) {
+		System.out.println(new Date().toString() + "\t" + s);
+		if (o != null) {
+			System.out.println(o.toString());
+		}
+	}
+	
 	private void initFireFoxDriver() {
 		if (driver == null) {
 			driver = new FirefoxDriver();
