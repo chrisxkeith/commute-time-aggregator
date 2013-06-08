@@ -31,20 +31,22 @@ public class DurationCollector2 {
 		String personId;
 		String homeLocation;
 		String workLocation;
+		Calendar previousSlot;
 
 		CollectionParams(String personId, String homeLocation,
 				String workLocation) {
 			this.personId = personId;
 			this.homeLocation = homeLocation;
 			this.workLocation = workLocation;
+			this.previousSlot = null;
 		}
 	}
 
-	final private String dirForResults = "/tmp";
+	final private String dirForResults;
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 	final private String otherCollectionParamsFileName;
 	final private int firstHour = 4; // 4 am
-	final private int lastHour = 20; // 8 pm, inclusive. E.g., actually up to 9 pm
+	final private int lastHour = 20; // 8 pm
 
 	// Sample every two minutes.
 	final private int minuteInterval = 2;
@@ -53,17 +55,20 @@ public class DurationCollector2 {
 	// spreadsheet.
 	final private SimpleDateFormat outputDateFormat = new SimpleDateFormat(
 			"yyyy/MM/dd HH:mm");
+	final private SimpleDateFormat fullDateFormat = new SimpleDateFormat(
+			"yyyy/MM/dd HH:mm:ss.SSS");
 	final private List<CollectionParams> collectionParams = new ArrayList<CollectionParams>();
 
 	private WebDriver driver = null;
-	private Calendar previousSlot = null;
 
 	public DurationCollector2(String[] args) {
-		if (args.length > 0) {
-			otherCollectionParamsFileName = args[0];
-		} else {
-			otherCollectionParamsFileName = null;
+		String d = System.getProperty("user.home");
+		if (d == null || d.length() == 0) {
+			throw new IllegalArgumentException("Unable to determine user.home directory");
 		}
+		d += File.separator + "Google Drive" + File.separator + "Commute Time Raw Data";
+		dirForResults = d;
+		otherCollectionParamsFileName = d + File.separator + "personIds.txt";
 	}
 
 	private int collectDuration(String origin, String destination)
@@ -77,8 +82,9 @@ public class DurationCollector2 {
 			driver.findElement(By.id("d_d")).sendKeys(origin);
 			driver.findElement(By.id("d_daddr")).clear();
 			driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
-			// Started being erratic... Replaced "Get Directions" click with \n
-			// above.
+			
+			// Started being erratic...
+			// Replaced "Get Directions" click with \n above.
 			// driver.findElement(By.id("d_sub")).click();
 
 			// GMaps can show multiple alternative routes. Use the quickest.
@@ -159,129 +165,7 @@ public class DurationCollector2 {
 					destination = cp.homeLocation;
 				}
 				int newDuration = this.collectDuration(origin, destination);
-				writeDuration(cp.personId, newDuration);
-			}
-		}
-	}
-
-	private class Duration {
-		public Calendar date;
-		public String duration;
-
-		public Duration(String s) throws ParseException {
-			String[] vals = s.split("\t");
-			date = new GregorianCalendar();
-			date.setTime(outputDateFormat.parse(vals[0]));
-			if (vals.length > 1) {
-				duration = vals[1];
-			}
-		}
-
-		public void increment() {
-			date.set(Calendar.MINUTE, date.get(Calendar.MINUTE)
-					+ minuteInterval);
-
-		}
-
-		public String toString() {
-			String ret = outputDateFormat.format(new Date(date.getTimeInMillis())) + "\t";
-			if (duration == null) {
-				return ret;
-			}
-			return ret + duration;
-		}
-		
-		public Duration toStart() throws ParseException {
-			return toEndPoint(firstHour);
-		}
-		
-		public Duration toEnd() throws ParseException {
-			return toEndPoint(lastHour + 1);
-		}
-		
-		public Duration toEndPoint(int hour) throws ParseException {
-			Duration ret = new Duration(this.toString());
-			ret.date.set(Calendar.HOUR, hour);
-			ret.date.set(Calendar.MINUTE, 0);
-			ret.date.set(Calendar.SECOND, 0);
-			ret.duration = null; // don't add potentially misleading data.
-			return ret;
-		}
-	}
-
-	// TODO : validate and test.
-	private void cleanUpExistingData() {
-		for (CollectionParams cp : collectionParams) {
-			try {
-				File f = new File(dirForResults + "/" + cp.personId
-						+ "_commuteTimes.txt");
-				if (f.exists()) {
-					Path filePath = f.toPath();
-					List<String> output = new ArrayList<String>();
-					List<String> stringList = Files.readAllLines(filePath,
-							Charset.defaultCharset());
-					Iterator<String> it = stringList.iterator();
-					if (!it.hasNext()) {
-						break;
-					}
-					Duration previousDuration = new Duration(it.next());
-					fillStart(output, previousDuration);
-					output.add(previousDuration.toString());
-					while (it.hasNext()) {
-						Duration nextDuration = new Duration(it.next());
-						if (nextDuration.date.get(Calendar.DAY_OF_YEAR) > previousDuration.date.get(Calendar.DAY_OF_YEAR)) {
-							fillEnd(output, previousDuration);
-							fillStart(output, nextDuration);
-						} else {
-							while (previousDuration.date.before(nextDuration.date)) {
-								output.add(previousDuration.toString());
-								previousDuration.increment();
-							}
-						}
-						output.add(nextDuration.toString());
-						previousDuration = nextDuration;
-					}
-					if (output.size() > 0) {
-						fillEnd(output, previousDuration);
-						writeStringList(output, cp.personId);
-					}
-				}
-			} catch (Exception e) {
-				log(e);
-			}
-		}
-	}
-
-	private void fillEnd(List<String> output, Duration previousDuration) throws ParseException {
-		Duration d = new Duration(previousDuration.toString());
-		Duration end = d.toEnd();
-		while (d.date.before(end.date)) {
-			output.add(d.toString());
-			d.increment();
-		}
-	}
-
-	private void fillStart(List<String> output, Duration previousDuration) throws ParseException {
-		Duration start = previousDuration.toStart();
-		while (start.date.before(previousDuration.date)) {
-			output.add(start.toString());
-			start.increment();
-		}
-	}
-
-	private void writeStringList(List<String> output, String personId)
-			throws Exception {
-		BufferedWriter out = null;
-		try {
-			out = this.getWriter(personId, false);
-			for (String s : output) {
-				out.write(s + System.getProperty("line.separator"));
-			}
-		} catch (Exception e) {
-			log(e);
-		} finally {
-			if (out != null) {
-				out.close();
+				writeDuration(cp, newDuration);
 			}
 		}
 	}
@@ -328,6 +212,7 @@ public class DurationCollector2 {
 			start.set(Calendar.MINUTE, (lastInstant + minuteInterval));
 		}
 		start.set(Calendar.SECOND, 0);
+		start.set(Calendar.MILLISECOND, 0);
 		return start;
 	}
 	
@@ -343,29 +228,33 @@ public class DurationCollector2 {
 					.println("About to sleep until "
 							+ outputDateFormat.format(new Date(start
 									.getTimeInMillis())));
-			// cleanUpExistingData();
 		}
 		long millis = start.getTimeInMillis() - now.getTimeInMillis();
 		Thread.sleep(millis);
 	}
 
-	private void writeDuration(String personId, int duration) throws Exception {
+	private void writeDuration(CollectionParams cp, int duration) throws Exception {
 		Calendar now = Calendar.getInstance();
-		// Is it possible that "now" will be more than one minute past the slot?
 		now.set(Calendar.SECOND, 0);
+		now.set(Calendar.MILLISECOND, 0);
 		String durationStr = "";
-		BufferedWriter out = this.getWriter(personId, true);
-		if (previousSlot != null) {
-			previousSlot.add(Calendar.MINUTE, this.minuteInterval);
+		BufferedWriter out = this.getWriter(cp.personId, true);
+		if (cp.previousSlot != null) {
+			cp.previousSlot.add(Calendar.MINUTE, this.minuteInterval);
 			// If we didn't get a value, write empty slot(s) to keep slots
 			// across different days in sync.
-			while (previousSlot.getTimeInMillis() < now.getTimeInMillis()) {
-				String s = outputDateFormat.format(new Date(now
+			while (cp.previousSlot.before(now)) {
+				String s = outputDateFormat.format(new Date(cp.previousSlot
 						.getTimeInMillis()))
+						+ "\t\t"
+						+ fullDateFormat.format(new Date(cp.previousSlot
+								.getTimeInMillis()))
 						+ "\t"
+						+ fullDateFormat.format(new Date(now
+								.getTimeInMillis()))
 						+ System.getProperty("line.separator");
 				out.write(s);
-				previousSlot.add(Calendar.MINUTE, this.minuteInterval);
+				cp.previousSlot.add(Calendar.MINUTE, this.minuteInterval);
 			}
 		}
 		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
@@ -375,7 +264,7 @@ public class DurationCollector2 {
 				+ "\t" + durationStr + System.getProperty("line.separator");
 		out.write(s);
 		out.close();
-		previousSlot = now;
+		cp.previousSlot = now;
 	}
 
 	private void loadCollectionParams() throws Exception {
