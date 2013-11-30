@@ -1,27 +1,24 @@
 package me.chriskeith.dc;
 
 import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.openqa.selenium.*;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import java.util.regex.*;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 /**
  * Ping google maps for estimated commute duration. Write duration and time
- * stamp to tab-separated file. To get better data while running: (1) Don't
- * manually close Firefox window. (2) Don't switch networks (e.g., log into a
- * VPN). Assume : Java VM is running in the appropriate time zone.
+ * stamp to tab-separated file. To get better data while running:
+ * (1) Don't manually close Firefox window.
+ * (2) Don't switch networks (e.g., log into a VPN).
+ * (3) Make sure that your Firefox is up-to-date.
+ * (4) Use pre-2013 version of Google Maps (may happen automatically with Firefox?)
+ * Assume : Java VM is running in the appropriate time zone.
  * 
  * @author ckeith
  */
@@ -41,6 +38,8 @@ public class DurationCollector2 {
 			this.previousSlot = null;
 		}
 	}
+
+	final boolean isDebug;
 
 	final private String dirForResults;
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
@@ -62,6 +61,8 @@ public class DurationCollector2 {
 	private WebDriver driver = null;
 
 	public DurationCollector2(String[] args) {
+		isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().
+			    getInputArguments().toString().indexOf("jdwp") >= 0;
 		String d = System.getProperty("user.home");
 		if (d == null || d.length() == 0) {
 			throw new IllegalArgumentException("Unable to determine user.home directory");
@@ -171,6 +172,9 @@ public class DurationCollector2 {
 	}
 
 	private int getDayIncrement(Calendar now) {
+		if (isDebug) {
+			return 0;
+		}
 		int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
 		int dayIncrement = 0;
 		if (dayOfWeek == Calendar.SATURDAY) {
@@ -271,38 +275,36 @@ public class DurationCollector2 {
 		collectionParams.clear();
 		if (otherCollectionParamsFileName != null) {
 			File otherCollectionParams = new File(otherCollectionParamsFileName);
-			if (!otherCollectionParams.exists()) {
-				throw new RuntimeException("Can't find: "
-						+ otherCollectionParams.getAbsolutePath());
-			}
-			BufferedReader br = new BufferedReader(new FileReader(
-					otherCollectionParamsFileName));
-			try {
-				String personId = br.readLine();
-				while (personId != null) {
-					String home = br.readLine();
-					if (home == null) {
-						throw new RuntimeException("Home not specified for: "
-								+ personId);
+			if (otherCollectionParams.exists()) {
+				BufferedReader br = new BufferedReader(new FileReader(
+						otherCollectionParamsFileName));
+				try {
+					String personId = br.readLine();
+					while (personId != null) {
+						String home = br.readLine();
+						if (home == null) {
+							throw new RuntimeException("Home not specified for: "
+									+ personId);
+						}
+						String work = br.readLine();
+						if (work == null) {
+							throw new RuntimeException("Work not specified for: "
+									+ personId);
+						}
+						collectionParams.add(new CollectionParams(personId, home,
+								work));
+						personId = br.readLine();
 					}
-					String work = br.readLine();
-					if (work == null) {
-						throw new RuntimeException("Work not specified for: "
-								+ personId);
-					}
-					collectionParams.add(new CollectionParams(personId, home,
-							work));
-					personId = br.readLine();
+				} finally {
+					br.close();
 				}
-			} finally {
-				br.close();
 			}
 		}
 		// Add this one last, so the browser shows it (to help
 		// debugging/monitoring).
 		collectionParams.add(new CollectionParams("ChristopherKeith",
 				"368 MacArthur Blvd, San Leandro, CA 94577",
-				"3200 Bridge Pkwy Redwood City, CA"));
+				"2623 Camino Ramon, San Ramon, CA, USA"));
 	}
 
 	public void run() {
