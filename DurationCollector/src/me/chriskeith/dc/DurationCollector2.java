@@ -67,7 +67,17 @@ public class DurationCollector2 {
 		if (d == null || d.length() == 0) {
 			throw new IllegalArgumentException("Unable to determine user.home directory");
 		}
-		d += File.separator + "Google Drive" + File.separator + "Commute Time Raw Data";
+		String pathEnd = File.separator + "Google Drive" + File.separator + "Commute Time Raw Data";
+		File dir = new File(d + pathEnd);
+		if (dir.exists()) {
+			d += pathEnd;
+		} else {
+			d += File.separator + "My Documents" + pathEnd;
+			dir = new File(d);
+			if (!dir.exists()) {
+				throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
+			}
+		}
 		dirForResults = d;
 		otherCollectionParamsFileName = d + File.separator + "personIds.txt";
 	}
@@ -308,13 +318,6 @@ public class DurationCollector2 {
 	}
 
 	public void run() {
-		File dir = new File(dirForResults);
-		if (!dir.exists()) {
-			if (!dir.mkdir()) {
-				throw new RuntimeException("Unable to create: "
-						+ dir.getAbsolutePath());
-			}
-		}
 		try {
 			loadCollectionParams();
 			collectDurations();
