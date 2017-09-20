@@ -70,16 +70,13 @@ public class DurationCollector {
 		if (d == null || d.length() == 0) {
 			throw new IllegalArgumentException("Unable to determine user.home directory");
 		}
-		String pathEnd = File.separator + "Google Drive" + File.separator + "Commute Time Raw Data";
+		String pathEnd = File.separator + "Documents" + File.separator + "Github" + File.separator
+				+ "commute-time-aggregator" + File.separator + "DurationCollector" + File.separator + "data";
 		File dir = new File(d + pathEnd);
 		if (dir.exists()) {
 			d += pathEnd;
 		} else {
-			d += File.separator + "My Documents" + pathEnd;
-			dir = new File(d);
-			if (!dir.exists()) {
-				throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
-			}
+			throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
 		}
 		dirForResults = d;
 		otherCollectionParamsFileName = d + File.separator + "personIds.txt";

@@ -16,4 +16,4 @@ To build:
   * (more directions to come)
 * In git bash
   * cd commute-time-aggregator/DurationCollector
-  * mvn clean exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
+  * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"

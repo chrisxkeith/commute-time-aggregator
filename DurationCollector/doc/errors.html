@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Various errors encountered during build/run process, and attempts at fixes</title>
+</head>
+<h1>1</h1>
+<body>
+[WARNING] The POM for org.apache.httpcomponents:httpclient:jar:4.5.3 is invalid, transitive dependencies (if any) will not be available: 1 problem was encountered while building the effective model for org.apache.httpcomponents:httpclient:[unknown-version]
+[FATAL] Non-parseable POM C:\Users\Chris\.m2\repository\org\apache\httpcomponents\project\7\project-7.pom: in epilog non whitespace content is not allowed but got o (position: END_TAG seen ...</properties>\n</project>\no... @808:2)  @ C:\Users\Chris\.m2\repository\org\apache\httpcomponents\project\7\project-7.pom, line 808, column 2
+<ol>
+<li>Exit STS</li>
+<li>rm -rf ~/.m2/repository/*</li>
+<li>mvn clean exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"</li>
+</ol>
+<h1>2</h1>
+Caused by: java.lang.ClassNotFoundException: com.ckkeith.duration_collector.DurationCollector
+<ol>
+<li>mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"</li>
+</ol>
+<h1>3</h1>
+[ERROR] Failed to execute goal org.codehaus.mojo:exec-maven-plugin:1.6.0:java (default-cli) on project duration-collector: An exception occured while executing the Java class. Unable to find: C:\Users\Chris\My Documents\Google Drive\Commute Time Raw Data -> [Help 1]
+<ol>
+<li>Install Google Drive</li>
+<li>Set it up and sync. Take defaults and give it a few minutes. Watch the File Explorer window to see if it's still synching.</li>
+</ol>
+<h1>4</h1>
+java.lang.RuntimeException: Unable to find: C:\Users\Chris\My Documents\Google Drive\Commute Time Raw Data
+<ol>
+<li>Change code to use 'new' location of Google drive data.</li>
+</ol>
+<h1>5</h1>
+java.lang.IllegalStateException: The path to the driver executable must be set by the webdriver.gecko.driver system property; for more information, see https://github.com/mozilla/geckodriver. The latest version can be downloaded from https://github.com/mozilla/geckodriver/releases
+<ol>
+<li>???</li>
+</ol>
+</body>
+</html>
