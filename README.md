@@ -3,7 +3,7 @@ commute-time-aggregator
 
 Aggregate commute durations over time to see pattern(s)
 
-To build:
+To build and run:
 
 * Download and install Github tools from https://www.github.com
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice) 
@@ -19,7 +19,7 @@ To build:
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
 * In STS
   * File > Import > the maven pom.xml file/project
-  * set parameters in DurationCollector.java (TODO : see comments at top of file)
+  * Set parameters in DurationCollector.java (__TODO__ : see comments at top of file)
 * In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
