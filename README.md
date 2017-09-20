@@ -10,6 +10,9 @@ To build:
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\Chris\mvn\ to avoid 'path to long' error
   * Add to path : C:\Users\Chris\mvn\apache-maven-3.5.0\bin
+* Download geckodriver from https://github.com/mozilla/geckodriver/releases
+  * Extract from zip
+  * Add to path : C:\Users\Chris\Downloads\geckodriver-v0.19.0-win64
 * Run git bash 
 * In git bash 
   * cd *yourDirectoryContainingRepositories*
