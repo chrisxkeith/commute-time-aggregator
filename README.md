@@ -17,7 +17,9 @@ To build:
 * In git bash 
   * cd *yourDirectoryContainingRepositories*
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
-* In STS, set parameters in DurationCollector.java (TODO : see comments at top of file)
+* In STS
+  * File > Import > the maven pom.xml file/project
+  * set parameters in DurationCollector.java (TODO : see comments at top of file)
 * In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
