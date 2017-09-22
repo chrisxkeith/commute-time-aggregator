@@ -13,45 +13,41 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.text.SimpleDateFormat;
 
-/**
- * Scrape google maps for estimated commute duration. Write duration and time
- * stamp to tab-separated file. To get better data while running: - Don't
- * manually close browser window. - Don't switch networks (e.g., log into a
- * VPN). - Make sure that your browser is up-to-date. Assume : Java VM is
- * running in the appropriate time zone.
- */
 public class DurationCollector {
 
 	class CollectionParams {
-		String personId;
+		String routeId;
 		String homeLocation;
 		String workLocation;
+		int dayOfWeek;
 
-		CollectionParams(String personId, String homeLocation, String workLocation) {
-			this.personId = personId;
+		CollectionParams(String routeId, String homeLocation, String workLocation, int dayOfWeek) {
+			this.routeId = routeId;
 			this.homeLocation = homeLocation;
 			this.workLocation = workLocation;
+			this.dayOfWeek = dayOfWeek;
 		}
 	}
 
 	final boolean isDebug;
 	final int sleepSeconds = 30;
 	final private String dirForResults;
-	final private String otherCollectionParamsFileName;
 
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 
 	// A format that will convert to a date when pasted into a Google spreadsheet.
 	final private SimpleDateFormat outputDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 
-	// A format that will convert to a date when pasted into a Google spreadsheet.
-	final private SimpleDateFormat gMapsFormat = new SimpleDateFormat("HH:mm a");
+	// Formats that will convert to format for the Maps web page.
+	final private SimpleDateFormat gMapsTimeFormat = new SimpleDateFormat("HH:mm a");
+	final private SimpleDateFormat gMapsDateFormat = new SimpleDateFormat("E, M d");
 
 	final private List<CollectionParams> collectionParams = new ArrayList<CollectionParams>();
 
@@ -72,7 +68,15 @@ public class DurationCollector {
 			throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
 		}
 		dirForResults = d + pathEnd;
-		otherCollectionParamsFileName = null; // d + File.separator + "personIds.txt";
+	}
+
+	private void loadCollectionParams() throws Exception {
+		Integer[] daysOfWeek = { Calendar.SUNDAY }; // , Calendar.WEDNESDAY, Calendar.FRIDAY, Calendar.SATURDAY };
+		for (Integer dayOfWeek : daysOfWeek) {
+			collectionParams.add(new CollectionParams(/* name of data set file */ "to_Mt_Tam_" + dayOfWeek,
+					/* start location */ "343 Kenilworth Avenue, San Leandro, CA 94577",
+					/* destination location */ "Mt Tamalpais, California 94941", dayOfWeek));
+		}
 	}
 
 	private int minutesFromString(String s) {
@@ -104,7 +108,7 @@ public class DurationCollector {
 		driver.findElement(By.id("searchboxinput")).sendKeys(destination + "\n");
 
 		// wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("section-hero-header-directions")));
-		Thread.sleep(10 * 1000);
+		Thread.sleep(10 * 1000); // TODO : any way to wait here instead of sleep?
 		driver.findElement(By.className("section-hero-header-directions")).click();
 
 		WebElement currentElement = driver.switchTo().activeElement();
@@ -124,9 +128,18 @@ public class DurationCollector {
 		WebElement timeEl = driver.findElement(By.name("transit-time"));
 		timeEl.sendKeys(Keys.chord(Keys.CONTROL, "a"));
 		timeEl.sendKeys(Keys.chord(Keys.DELETE));
-		timeEl.sendKeys(this.gMapsFormat.format(ts.getTime()));
+		timeEl.sendKeys(this.gMapsTimeFormat.format(ts.getTime()));
 		timeEl.sendKeys(Keys.chord(Keys.ENTER));
-		Thread.sleep(5000);
+
+		Thread.sleep(5000); // TODO : any way to wait here instead of sleep?
+
+//		WebElement dateEl = driver.findElement(By.className("date-input"));
+//		dateEl.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+//		dateEl.sendKeys(Keys.chord(Keys.DELETE));
+//		dateEl.sendKeys(this.gMapsDateFormat.format(ts.getTime()));
+//		dateEl.sendKeys(Keys.chord(Keys.ENTER));
+//
+//		Thread.sleep(5000); // TODO : any way to wait here instead of sleep?
 
 		int minEstimate = Integer.MAX_VALUE;
 		int maxEstimate = Integer.MAX_VALUE;
@@ -144,15 +157,16 @@ public class DurationCollector {
 		return new java.util.AbstractMap.SimpleEntry<Integer, Integer>(minEstimate, maxEstimate);
 	}
 
-	private void initFireFoxDriver() {
+	private void initBrowserDriver() {
 		if (driver == null) {
 			driver = new FirefoxDriver();
+//			driver = new ChromeDriver();
 			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
 	}
 
-	private BufferedWriter getWriter(String personId, boolean doAppend) throws Exception {
-		String filePathString = dirForResults + "/" + personId + "_commuteTimes.txt";
+	private BufferedWriter getWriter(String routeId, boolean doAppend) throws Exception {
+		String filePathString = dirForResults + "/" + routeId + "_travelTimes.txt";
 		FileWriter fstream;
 		File f = new File(filePathString);
 		if (f.exists()) {
@@ -164,12 +178,13 @@ public class DurationCollector {
 	}
 
 	private void collectDurations() throws Exception {
-		initFireFoxDriver();
+		initBrowserDriver();
 		driver.get("https://maps.google.com/");
 
 		for (CollectionParams cp : collectionParams) {
 			setUpPage(cp.workLocation, cp.homeLocation);
 			Calendar ts = Calendar.getInstance();
+			ts.set(Calendar.DAY_OF_WEEK, cp.dayOfWeek);
 			ts.set(Calendar.HOUR_OF_DAY, 4);
 			ts.set(Calendar.MINUTE, 0);
 			ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
@@ -181,47 +196,18 @@ public class DurationCollector {
 		}
 	}
 
-	private void writeDuration(CollectionParams cp, Calendar ts,
-			java.util.AbstractMap.SimpleEntry<Integer, Integer> p) throws Exception {
-		BufferedWriter out = this.getWriter(cp.personId, true);
-		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + p.getValue() + System.getProperty("line.separator");
+	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p)
+			throws Exception {
+		BufferedWriter out = this.getWriter(cp.routeId, true);
+		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + p.getValue()
+				+ System.getProperty("line.separator");
 		out.write(s);
 		out.close();
 	}
 
-	private void loadCollectionParams() throws Exception {
-		collectionParams.clear();
-		if (otherCollectionParamsFileName != null) {
-			File otherCollectionParams = new File(otherCollectionParamsFileName);
-			if (otherCollectionParams.exists()) {
-				BufferedReader br = new BufferedReader(new FileReader(otherCollectionParamsFileName));
-				try {
-					String personId = br.readLine();
-					while (personId != null) {
-						String home = br.readLine();
-						if (home == null) {
-							throw new RuntimeException("Home not specified for: " + personId);
-						}
-						String work = br.readLine();
-						if (work == null) {
-							throw new RuntimeException("Work not specified for: " + personId);
-						}
-						collectionParams.add(new CollectionParams(personId, home, work));
-						personId = br.readLine();
-					}
-				} finally {
-					br.close();
-				}
-			}
-		}
-		// Add this one last, so the browser shows it
-		// (to help debugging/monitoring).
-		collectionParams.add(new CollectionParams("toMtTam", "343 Kenilworth Avenue, San Leandro, CA 94577",
-				"Mt Tamalpais, California 94941"));
-	}
-
 	public void run() {
 		try {
+			log("Starting ...");
 			loadCollectionParams();
 			collectDurations();
 		} catch (Exception e) {
@@ -230,12 +216,17 @@ public class DurationCollector {
 			if (driver != null) {
 				driver.quit();
 			}
+			log("Finished ...");
 		}
 	}
 
 	private void log(Exception e) {
 		e.printStackTrace();
-		System.out.println(new Date().toString() + " " + e);
+		System.out.println(new Date().toString() + "\t" + e);
+	}
+
+	private void log(String s) {
+		System.out.println(new Date().toString() + "\t" + s);
 	}
 
 	public static void main(String[] args) {
