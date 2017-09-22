@@ -1,9 +1,8 @@
-commute-time-aggregator
-=======================
+__Currently not working... to be updated to use current version of Google Maps web page__
 
-Aggregate commute durations over time to see pattern(s)
+__Can break any time Google decides to change the HTML structure of their Maps page.__
 
-To build:
+To build and run:
 
 * Download and install Github tools from https://www.github.com
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice) 
@@ -13,11 +12,14 @@ To build:
 * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
   * Add to path : C:\Users\Chris\Downloads\geckodriver-v0.19.0-win64
+* Install Firefox browser (should work with Google Chrome browser, but hasn't been tested) 
 * Run git bash 
 * In git bash 
   * cd *yourDirectoryContainingRepositories*
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
-* In STS, set parameters in DurationCollector.java (TODO : see comments at top of file)
+* In STS
+  * File > Import > the maven pom.xml file/project
+  * Set parameters in DurationCollector.java (__TODO__ : see comments at top of file)
 * In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
