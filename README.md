@@ -1,3 +1,4 @@
+__Currently not working... to be updated to use current version of Google Maps web page__
 To build and run:
 
 * Download and install Github tools from https://www.github.com
