@@ -1,8 +1,6 @@
-__Currently not working... to be updated to use current version of Google Maps web page__
-
 __Can break any time Google decides to change the HTML structure of their Maps page.__
 
-To build and run:
+To build and run
 
 * Download and install Github tools from https://www.github.com
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice) 
@@ -24,3 +22,13 @@ To build and run:
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
   * ...It may take a minute or two for Firefox to come up
+
+Notes
+
+* Scrapes google maps for estimated commute duration
+* Writes duration and time stamp to tab-separated file
+* To get better data while running:
+  * Don't manually close browser window
+  * Don't switch networks (e.g., log into a VPN)
+  * Make sure that your browser is up-to-date
+* Assumes that Java VM is running in the appropriate time zone.
