@@ -12,7 +12,7 @@ To build and run
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
   * Add to path : C:\Users\Chris\Downloads\geckodriver-v0.19.0-win64
-* Google Chrome browser (doesn't work yet)
+* _if you want to try Chrome_ Google Chrome browser (doesn't work yet)
   * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
   * Extract from zip
   * Add to path : C:\Users\Chris\Downloads\ ... appropriate directory ...
