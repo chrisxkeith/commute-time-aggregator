@@ -6,10 +6,17 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
 import java.text.SimpleDateFormat;
 
 /**
@@ -37,9 +44,12 @@ public class DurationCollector {
 	}
 
 	final boolean isDebug;
+	final int sleepSeconds = 30;
 	final private String dirForResults;
 	final private String otherCollectionParamsFileName;
 
+	final private Pattern digitPattern = Pattern.compile("[0-9]+");
+	
 	// A format that will convert to a date when pasted into a Google
 	// spreadsheet.
 	final private SimpleDateFormat outputDateFormat = new SimpleDateFormat(
@@ -70,24 +80,46 @@ public class DurationCollector {
 		int minutes = 0;
 		if (s.contains(" h ")) {
 			String[] c = s.split(" h ");
-			minutes += Integer.parseInt(c[0]);
+			Matcher m = digitPattern.matcher(c[0]);
+			if (m.find()) {
+				minutes += (Integer.parseInt(m.group()) * 60);
+			}
 			s = c[1];
 		}
-		s = s.replaceAll("min", "");
-		return minutes + Integer.parseInt(s);
+		Matcher m = digitPattern.matcher(s);
+		if (m.find()) {
+			minutes += Integer.parseInt(m.group());
+		}
+		return minutes;
 	}
 	
 	private int collectDuration(String origin, String destination, String timeStamp)
 			throws Exception {
 		initFireFoxDriver();
 		driver.get("https://maps.google.com/");
+		
+		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
+		wait.until(ExpectedConditions.elementToBeClickable(By.id("searchboxinput")));
 		driver.findElement(By.id("searchboxinput")).sendKeys(destination + "\n");
+		
+//		wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("section-hero-header-directions")));
+		Thread.sleep(10 * 1000);
 		driver.findElement(By.className("section-hero-header-directions")).click();
+		
 		WebElement currentElement = driver.switchTo().activeElement();
 		currentElement.sendKeys(origin + "\n");
-		driver.findElement(By.xpath("//*[text()[contains(.,\"Text: Leave now\")]]")).click();
-		driver.findElement(By.xpath("//*[text()[contains(.,\"Text: Depart at\")]]")).click();
-		driver.findElement(By.name("transit-time")).sendKeys(timeStamp);
+		
+		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Leave now\")]]")));
+		driver.findElement(By.xpath("//*[text()[contains(.,\"Leave now\")]]")).click();
+		
+		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Depart at\")]]")));
+		driver.findElement(By.xpath("//*[text()[contains(.,\"Depart at\")]]")).click();
+		
+		wait.until(ExpectedConditions.elementToBeClickable(By.name("transit-time")));
+		WebElement timeEl = driver.findElement(By.name("transit-time"));		
+		timeEl.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+		timeEl.sendKeys(Keys.chord(Keys.DELETE));
+		timeEl.sendKeys(timeStamp);
 		
 		// Google Maps can show multiple alternative routes. Use the first.
 		List<WebElement> wList = driver
@@ -97,13 +129,13 @@ public class DurationCollector {
 		WebElement w = wList.get(0);
 		String durations = w.findElement(By.xpath("//span[contains(text(), \"min\")]")).getText();
 		String[] rangeLimits = durations.split("-");
-		return minutesFromString(rangeLimits[0]) + minutesFromString(rangeLimits[1]);
+		return minutesFromString(rangeLimits[0]); // minutesFromString(rangeLimits[1]);
 	}
 
 	private void initFireFoxDriver() {
 		if (driver == null) {
 			driver = new FirefoxDriver();
-			driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
 	}
 
