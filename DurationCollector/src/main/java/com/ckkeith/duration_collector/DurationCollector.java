@@ -6,23 +6,19 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.*;
-
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
-
 import java.text.SimpleDateFormat;
 
 /**
- * Ping google maps for estimated commute duration.
+ * Scrape google maps for estimated commute duration.
  * Write duration and time stamp to tab-separated file.
  * To get better data while running:
- * (1) Don't manually close Firefox window.
- * (2) Don't switch networks (e.g., log into a VPN).
- * (3) Make sure that your Firefox is up-to-date.
- * (4) Use pre-2013 version of Google Maps (may happen automatically with Firefox?)
+ * - Don't manually close browser window.
+ * - Don't switch networks (e.g., log into a VPN).
+ * - Make sure that your browser is up-to-date.
  * Assume : Java VM is running in the appropriate time zone.
  */
 public class DurationCollector {
@@ -31,34 +27,24 @@ public class DurationCollector {
 		String personId;
 		String homeLocation;
 		String workLocation;
-		Calendar previousSlot;
 
 		CollectionParams(String personId, String homeLocation,
 				String workLocation) {
 			this.personId = personId;
 			this.homeLocation = homeLocation;
 			this.workLocation = workLocation;
-			this.previousSlot = null;
 		}
 	}
 
 	final boolean isDebug;
-
 	final private String dirForResults;
-	final private Pattern digitPattern = Pattern.compile("[0-9]+");
 	final private String otherCollectionParamsFileName;
-	final private int firstHour = 4; // 4 am
-	final private int lastHour = 20; // 8 pm
-
-	// Sample every two minutes.
-	final private int minuteInterval = 2;
 
 	// A format that will convert to a date when pasted into a Google
 	// spreadsheet.
 	final private SimpleDateFormat outputDateFormat = new SimpleDateFormat(
 			"yyyy/MM/dd HH:mm");
-	final private SimpleDateFormat fullDateFormat = new SimpleDateFormat(
-			"yyyy/MM/dd HH:mm:ss.SSS");
+
 	final private List<CollectionParams> collectionParams = new ArrayList<CollectionParams>();
 
 	private WebDriver driver = null;
@@ -73,74 +59,47 @@ public class DurationCollector {
 		String pathEnd = File.separator + "Documents" + File.separator + "Github" + File.separator
 				+ "commute-time-aggregator" + File.separator + "DurationCollector" + File.separator + "data";
 		File dir = new File(d + pathEnd);
-		if (dir.exists()) {
-			d += pathEnd;
-		} else {
+		if (!dir.exists()) {
 			throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
 		}
-		dirForResults = d;
-		otherCollectionParamsFileName = d + File.separator + "personIds.txt";
+		dirForResults = d + pathEnd;
+		otherCollectionParamsFileName = null; // d + File.separator + "personIds.txt";
 	}
 
-	private int collectDuration(String origin, String destination)
-			throws Exception {
-		initFireFoxDriver();
-		int minutes = Integer.MAX_VALUE;
-		try {
-			driver.get("https://maps.google.com/");
-			driver.findElement(By.id("d_launch")).click();
-			driver.findElement(By.id("d_d")).clear();
-			driver.findElement(By.id("d_d")).sendKeys(origin);
-			driver.findElement(By.id("d_daddr")).clear();
-			driver.findElement(By.id("d_daddr")).sendKeys(destination + "\n");
-			
-			// Started being erratic...
-			// Replaced "Get Directions" click with \n above.
-			// driver.findElement(By.id("d_sub")).click();
-
-			// GMaps can show multiple alternative routes. Use the quickest.
-			List<WebElement> wList = driver
-					.findElements(By
-							.xpath("//span[contains(text(), \"In current traffic: \")]"));
-			for (WebElement w : wList) {
-				Matcher m = digitPattern.matcher(w.getText());
-				if (m.find()) {
-					int newVal = Integer.parseInt(m.group());
-					if (m.find()) {
-						// First number was hour(s).
-						newVal = (newVal * 60) + Integer.parseInt(m.group());
-					}
-					if (newVal < minutes) {
-						minutes = newVal;
-					}
-				}
-			}
-		} catch (Exception e) {
-			// Switching networks (e.g., logging into a VPN)
-			// can cause an exception.
-			// Shut down the driver and Firefox
-			// and restart for the next time slot.
-			log("During WebDriver interaction", e);
-			if (driver != null) {
-				try {
-					driver.quit();
-				} catch (Exception e2) {
-					log("During driver.quit()", e);
-				}
-				driver = null;
-			}
-			initFireFoxDriver();
+	private int minutesFromString(String s) {
+		int minutes = 0;
+		if (s.contains(" h ")) {
+			String[] c = s.split(" h ");
+			minutes += Integer.parseInt(c[0]);
+			s = c[1];
 		}
-		return minutes;
-	}
-
-	private void log(String s, Object o) {
-		System.out.println(new Date().toString() + "\t" + s);
-		if (o != null) {
-			System.out.println(o.toString());
-		}
+		s = s.replaceAll("min", "");
+		return minutes + Integer.parseInt(s);
 	}
 	
+	private int collectDuration(String origin, String destination, String timeStamp)
+			throws Exception {
+		initFireFoxDriver();
+		driver.get("https://maps.google.com/");
+		driver.findElement(By.id("searchboxinput")).sendKeys(destination + "\n");
+		driver.findElement(By.className("section-hero-header-directions")).click();
+		WebElement currentElement = driver.switchTo().activeElement();
+		currentElement.sendKeys(origin + "\n");
+		driver.findElement(By.xpath("//*[text()[contains(.,\"Text: Leave now\")]]")).click();
+		driver.findElement(By.xpath("//*[text()[contains(.,\"Text: Depart at\")]]")).click();
+		driver.findElement(By.name("transit-time")).sendKeys(timeStamp);
+		
+		// Google Maps can show multiple alternative routes. Use the first.
+		List<WebElement> wList = driver
+				.findElements(By
+						.xpath("//span[contains(text(), \"typically\")]"));
+
+		WebElement w = wList.get(0);
+		String durations = w.findElement(By.xpath("//span[contains(text(), \"min\")]")).getText();
+		String[] rangeLimits = durations.split("-");
+		return minutesFromString(rangeLimits[0]) + minutesFromString(rangeLimits[1]);
+	}
+
 	private void initFireFoxDriver() {
 		if (driver == null) {
 			driver = new FirefoxDriver();
@@ -162,89 +121,27 @@ public class DurationCollector {
 	}
 
 	private void collectDurations() throws Exception {
-		String origin;
-		String destination;
-		while (true) {
-			sleepUntilNextSnapshot();
-			int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-			for (CollectionParams cp : collectionParams) {
-				if (hour < 12) { // switch directions at 12 noon.
-					origin = cp.homeLocation;
-					destination = cp.workLocation;
-				} else {
-					origin = cp.workLocation;
-					destination = cp.homeLocation;
-				}
-				int newDuration = this.collectDuration(origin, destination);
-				writeDuration(cp, newDuration);
-			}
-		}
-	}
-
-	private int getDayIncrement(Calendar now) {
-		if (isDebug) {
-			return 0;
-		}
-		int dayOfWeek = now.get(Calendar.DAY_OF_WEEK);
-		int dayIncrement = 0;
-		if (dayOfWeek == Calendar.SATURDAY) {
-			dayIncrement = 2;
-		} else if (dayOfWeek == Calendar.SUNDAY) {
-			dayIncrement = 1;
-		} else {
-			int hour = now.get(Calendar.HOUR_OF_DAY);
-			if (hour < firstHour) {
-				dayIncrement = 1;
-			} else if (lastHour <= hour) {
-				if (dayOfWeek == Calendar.FRIDAY) {
-					dayIncrement = 3;
-				} else {
-					dayIncrement = 1;
+		for (CollectionParams cp : collectionParams) {
+			for (int hour = 4 ; hour < 20; hour++) {
+				for (int minute = 0; minute < 60; minute += 10) {
+					String origin;
+					String destination;
+					String ampm;
+					if (hour < 12) { // switch directions at 12 noon.
+						origin = cp.homeLocation;
+						destination = cp.workLocation;
+						ampm =" AM";
+					} else {
+						origin = cp.workLocation;
+						destination = cp.homeLocation;
+						ampm =" PM";
+					}
+					String timeStr = hour + ":" + minute + ampm;
+					int newDuration = this.collectDuration(origin, destination, timeStr);
+					writeDuration(cp, newDuration);
 				}
 			}
 		}
-		return dayIncrement;
-	}
-
-	private Calendar getNextSlot(Calendar now, int dayIncrement) {
-		Calendar start = (Calendar) now.clone();
-		if (dayIncrement > 0) {
-			// If outside the range during which to record durations, sleep
-			// until within the range.
-			// Assume (till proved otherwise) that this will this work on the
-			// last day of the year.
-			start.set(Calendar.DAY_OF_YEAR, start.get(Calendar.DAY_OF_YEAR)
-					+ dayIncrement);
-			start.set(Calendar.HOUR_OF_DAY, 4);
-			start.set(Calendar.MINUTE, 0);
-
-		} else {
-			// Round to previous minute instant.
-			int lastInstant = (start.get(Calendar.MINUTE) / minuteInterval)
-					* minuteInterval;
-			// Sync to next minuteInterval instant.
-			start.set(Calendar.MINUTE, (lastInstant + minuteInterval));
-		}
-		start.set(Calendar.SECOND, 0);
-		start.set(Calendar.MILLISECOND, 0);
-		return start;
-	}
-	
-	private void sleepUntilNextSnapshot() throws Exception {
-		Calendar now = Calendar.getInstance();
-		int dayIncrement = getDayIncrement(now);
-		Calendar start = getNextSlot(now, dayIncrement);
-		if (dayIncrement > 0) {
-			// Reload in case we've manually edited the file containing the list
-			// of routes.
-			loadCollectionParams();
-			System.out
-					.println("About to sleep until "
-							+ outputDateFormat.format(new Date(start
-									.getTimeInMillis())));
-		}
-		long millis = start.getTimeInMillis() - now.getTimeInMillis();
-		Thread.sleep(millis);
 	}
 
 	private void writeDuration(CollectionParams cp, int duration) throws Exception {
@@ -253,24 +150,6 @@ public class DurationCollector {
 		now.set(Calendar.MILLISECOND, 0);
 		String durationStr = "";
 		BufferedWriter out = this.getWriter(cp.personId, true);
-		if (cp.previousSlot != null) {
-			cp.previousSlot.add(Calendar.MINUTE, this.minuteInterval);
-			// If we didn't get a value, write empty slot(s) to keep slots
-			// across different days in sync.
-			while (cp.previousSlot.before(now)) {
-				String s = outputDateFormat.format(new Date(cp.previousSlot
-						.getTimeInMillis()))
-						+ "\t\t"
-						+ fullDateFormat.format(new Date(cp.previousSlot
-								.getTimeInMillis()))
-						+ "\t"
-						+ fullDateFormat.format(new Date(now
-								.getTimeInMillis()))
-						+ System.getProperty("line.separator");
-				out.write(s);
-				cp.previousSlot.add(Calendar.MINUTE, this.minuteInterval);
-			}
-		}
 		if ((0 < duration) && (duration < Integer.MAX_VALUE)) {
 			durationStr = new Integer(duration).toString();
 		}
@@ -278,7 +157,6 @@ public class DurationCollector {
 				+ "\t" + durationStr + System.getProperty("line.separator");
 		out.write(s);
 		out.close();
-		cp.previousSlot = now;
 	}
 
 	private void loadCollectionParams() throws Exception {
@@ -312,9 +190,9 @@ public class DurationCollector {
 		}
 		// Add this one last, so the browser shows it (to help
 		// debugging/monitoring).
-		collectionParams.add(new CollectionParams("ChristopherKeith",
-				"368 MacArthur Blvd, San Leandro, CA 94577",
-				"2623 Camino Ramon, San Ramon, CA, USA"));
+		collectionParams.add(new CollectionParams("toMtTam",
+				"343 Kenilworth Avenue, San Leandro, CA 94577",
+				"Mt Tamalpais, California 94941"));
 	}
 
 	public void run() {
@@ -332,7 +210,7 @@ public class DurationCollector {
 
 	private void log(Exception e) {
 		e.printStackTrace();
-		System.out.println(new Date().toString() + e);
+		System.out.println(new Date().toString() + " " + e);
 	}
 
 	public static void main(String[] args) {
