@@ -1,8 +1,3 @@
-commute-time-aggregator
-=======================
-
-Aggregate commute durations over time to see pattern(s)
-
 To build and run:
 
 * Download and install Github tools from https://www.github.com
@@ -13,6 +8,7 @@ To build and run:
 * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
   * Add to path : C:\Users\Chris\Downloads\geckodriver-v0.19.0-win64
+* Install Firefox browser (should work with Google Chrome browser, but hasn't been tested) 
 * Run git bash 
 * In git bash 
   * cd *yourDirectoryContainingRepositories*
