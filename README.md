@@ -26,13 +26,13 @@ To build and run
 * In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
-  * ...It may take a minute or two for Firefox to come up
+  * ...It may take a minute or two for the browser to come up
 
 Notes
 
 * Scrapes google maps for estimated commute duration
 * Writes duration and time stamp to tab-separated file
-* To get better data while running:
+* To get good data while running:
   * Don't manually close browser window
   * Don't switch networks (e.g., log into a VPN)
   * Make sure that your browser is up-to-date
