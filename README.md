@@ -12,7 +12,7 @@ To build and run
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
   * Add to path : C:\Users\Chris\Downloads\geckodriver-v0.19.0-win64
-* Google Chrome browser (doesn't work yet)
+* _if you want to try Chrome_ ----- Google Chrome browser (doesn't work yet)
   * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
   * Extract from zip
   * Add to path : C:\Users\Chris\Downloads\ ... appropriate directory ...
@@ -26,13 +26,13 @@ To build and run
 * In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
-  * ...It may take a minute or two for Firefox to come up
+  * ...It may take a minute or two for the browser to come up
 
 Notes
 
 * Scrapes google maps for estimated commute duration
 * Writes duration and time stamp to tab-separated file
-* To get better data while running:
+* To get good data while running:
   * Don't manually close browser window
   * Don't switch networks (e.g., log into a VPN)
   * Make sure that your browser is up-to-date
