@@ -73,9 +73,13 @@ public class DurationCollector {
 	private void loadCollectionParams() throws Exception {
 		Integer[] daysOfWeek = { Calendar.SUNDAY }; // , Calendar.WEDNESDAY, Calendar.FRIDAY, Calendar.SATURDAY };
 		for (Integer dayOfWeek : daysOfWeek) {
-			collectionParams.add(new CollectionParams(/* name of data set file */ "to_Mt_Tam_" + dayOfWeek,
+//			collectionParams.add(new CollectionParams(/* name of data set file */ "to_Mt_Tam_" + dayOfWeek,
+//					/* start location */ "343 Kenilworth Avenue, San Leandro, CA 94577",
+//					/* destination location */ "Mt Tamalpais, California 94941", dayOfWeek));
+			collectionParams.add(new CollectionParams(/* name of data set file */ "from_Mt_Tam_" + dayOfWeek,
+					/* destination location */ "Mt Tamalpais, California 94941",
 					/* start location */ "343 Kenilworth Avenue, San Leandro, CA 94577",
-					/* destination location */ "Mt Tamalpais, California 94941", dayOfWeek));
+					dayOfWeek));
 		}
 	}
 
@@ -133,12 +137,8 @@ public class DurationCollector {
 
 		Thread.sleep(5000); // TODO : any way to wait here instead of sleep?
 
-//		WebElement dateEl = driver.findElement(By.className("date-input"));
-//		dateEl.sendKeys(Keys.chord(Keys.CONTROL, "a"));
-//		dateEl.sendKeys(Keys.chord(Keys.DELETE));
-//		dateEl.sendKeys(this.gMapsDateFormat.format(ts.getTime()));
-//		dateEl.sendKeys(Keys.chord(Keys.ENTER));
-//
+//		driver.findElement(By.className("date-input")).click();
+// ... some more gibberish to click on appropriate day of month ...
 //		Thread.sleep(5000); // TODO : any way to wait here instead of sleep?
 
 		int minEstimate = Integer.MAX_VALUE;
@@ -206,6 +206,7 @@ public class DurationCollector {
 	}
 
 	public void run() {
+		Date start = new Date();
 		try {
 			log("Starting ...");
 			loadCollectionParams();
@@ -216,7 +217,7 @@ public class DurationCollector {
 			if (driver != null) {
 				driver.quit();
 			}
-			log("Finished ...");
+			log("Finished, started at : " + start.toString());
 		}
 	}
 
