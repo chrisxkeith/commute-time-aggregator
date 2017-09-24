@@ -1,0 +1,4 @@
+WebDriverException
+ArrayIndexOutOfBoundsException
+TimeoutException
+NoSuchSessionException

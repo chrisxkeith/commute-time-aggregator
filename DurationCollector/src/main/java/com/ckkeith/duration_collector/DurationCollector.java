@@ -13,7 +13,6 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -47,7 +46,6 @@ public class DurationCollector {
 
 	// Formats that will convert to format for the Maps web page.
 	final private SimpleDateFormat gMapsTimeFormat = new SimpleDateFormat("HH:mm a");
-	final private SimpleDateFormat gMapsDateFormat = new SimpleDateFormat("E, M d");
 
 	final private List<CollectionParams> collectionParams = new ArrayList<CollectionParams>();
 
@@ -71,14 +69,14 @@ public class DurationCollector {
 	}
 
 	private void loadCollectionParams() throws Exception {
-		Integer[] daysOfWeek = { Calendar.SUNDAY }; // , Calendar.WEDNESDAY, Calendar.FRIDAY, Calendar.SATURDAY };
+		Integer[] daysOfWeek = { Calendar.SUNDAY }; // TODO : get dayofweek working ----- , Calendar.WEDNESDAY, Calendar.FRIDAY, Calendar.SATURDAY };
 		for (Integer dayOfWeek : daysOfWeek) {
-//			collectionParams.add(new CollectionParams(/* name of data set file */ "to_Mt_Tam_" + dayOfWeek,
-//					/* start location */ "343 Kenilworth Avenue, San Leandro, CA 94577",
-//					/* destination location */ "Mt Tamalpais, California 94941", dayOfWeek));
-			collectionParams.add(new CollectionParams(/* name of data set file */ "from_Mt_Tam_" + dayOfWeek,
-					/* destination location */ "Mt Tamalpais, California 94941",
-					/* start location */ "343 Kenilworth Avenue, San Leandro, CA 94577",
+			collectionParams.add(new CollectionParams(/* name of data set file */ "to_Netsuite_" + dayOfWeek,
+					/* start location */ "2408 E. 24th Street, Oakland CA",
+					/* destination location */ "2955 Campus Dr, 100, San Mateo, CA 94403", dayOfWeek));
+			collectionParams.add(new CollectionParams(/* name of data set file */ "from_Netsuite_" + dayOfWeek,
+					/* destination location */ "2955 Campus Dr, 100, San Mateo, CA 94403",
+					/* start location */ "2408 E. 24th Street, Oakland CA",
 					dayOfWeek));
 		}
 	}
@@ -97,7 +95,7 @@ public class DurationCollector {
 				s = null;
 			}
 		}
-		if ((s != null) && s.contains(" min")) {
+		if (s != null) {
 			Matcher m = digitPattern.matcher(s);
 			if (m.find()) {
 				minutes += Integer.parseInt(m.group());
@@ -148,10 +146,18 @@ public class DurationCollector {
 		List<WebElement> wList = driver.findElements(By.xpath("//span[contains(text(), \"typically\")]"));
 		for (WebElement w : wList) {
 			String durations = w.findElement(By.xpath("//span[contains(text(), \" min\")]")).getText();
-			String[] rangeLimits = durations.split("-");
-			if (minEstimate > minutesFromString(rangeLimits[0])) {
-				minEstimate = minutesFromString(rangeLimits[0]);
-				maxEstimate = Math.min(maxEstimate, minutesFromString(rangeLimits[1]));
+			if (durations.contains("-")) {
+				String[] rangeLimits = durations.split("-");
+				if (minEstimate > minutesFromString(rangeLimits[0])) {
+					minEstimate = minutesFromString(rangeLimits[0]);
+					maxEstimate = Math.min(maxEstimate, minutesFromString(rangeLimits[1]));
+				}
+			} else {
+				// No range, use single estimate for both min and max.
+				if (minEstimate > minutesFromString(durations)) {
+					minEstimate = minutesFromString(durations);
+					maxEstimate = Math.min(maxEstimate, minutesFromString(durations));
+				}
 			}
 		}
 		return new java.util.AbstractMap.SimpleEntry<Integer, Integer>(minEstimate, maxEstimate);
@@ -160,15 +166,15 @@ public class DurationCollector {
 	private void initBrowserDriver() {
 		if (driver == null) {
 			driver = new FirefoxDriver();
-//			driver = new ChromeDriver();
+//			driver = new ChromeDriver(); // TODO : will this help with other TODO's?
 			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
 	}
 
 	private BufferedWriter getWriter(String routeId, boolean doAppend) throws Exception {
 		String filePathString = dirForResults + "/" + routeId + "_travelTimes.txt";
-		FileWriter fstream;
 		File f = new File(filePathString);
+		FileWriter fstream;
 		if (f.exists()) {
 			fstream = new FileWriter(filePathString, doAppend);
 		} else {
@@ -177,21 +183,49 @@ public class DurationCollector {
 		return new BufferedWriter(fstream);
 	}
 
+	private void writeHeader(CollectionParams cp) throws Exception {
+		BufferedWriter out = this.getWriter(cp.routeId, true);
+		String s = cp.routeId + "\tminimum\taverage\tmaximum" + System.getProperty("line.separator");
+		out.write(s);
+		out.close();
+	}
+	
+	private void setupFile(CollectionParams cp) throws Exception {
+		String filePathString = dirForResults + "/" + cp.routeId + "_travelTimes.txt";
+		File f = new File(filePathString);
+		if (f.exists()) {
+			f.delete();
+		}
+		writeHeader(cp);
+	}
+	
 	private void collectDurations() throws Exception {
-		initBrowserDriver();
-		driver.get("https://maps.google.com/");
-
 		for (CollectionParams cp : collectionParams) {
-			setUpPage(cp.workLocation, cp.homeLocation);
-			Calendar ts = Calendar.getInstance();
-			ts.set(Calendar.DAY_OF_WEEK, cp.dayOfWeek);
-			ts.set(Calendar.HOUR_OF_DAY, 4);
-			ts.set(Calendar.MINUTE, 0);
-			ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
-			while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
-				java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-				writeDuration(cp, ts, newDuration);
-				ts.add(Calendar.MINUTE, 10);
+			initBrowserDriver();
+			try {
+				setupFile(cp);
+				driver.get("https://maps.google.com/");
+
+				setUpPage(cp.workLocation, cp.homeLocation);
+				
+				System.out.println("Select appropriate day and press <ENTER> in the console window ...");
+				System.in.read();  // TODO : temporary to allow manual click on appropriate day of the week.
+				
+				Calendar ts = Calendar.getInstance();
+				ts.set(Calendar.DAY_OF_WEEK, cp.dayOfWeek);
+				ts.set(Calendar.HOUR_OF_DAY, 4);
+				ts.set(Calendar.MINUTE, 0);
+				ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
+				while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
+					java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
+					writeDuration(cp, ts, newDuration);
+					ts.add(Calendar.MINUTE, 10);
+				}
+			} finally {
+				if (driver != null) {
+					driver.quit();
+					driver = null;
+				}
 			}
 		}
 	}
@@ -199,7 +233,8 @@ public class DurationCollector {
 	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p)
 			throws Exception {
 		BufferedWriter out = this.getWriter(cp.routeId, true);
-		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + p.getValue()
+		Integer average = (p.getKey() + p.getValue()) / 2;
+		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + average + "\t" + p.getValue()
 				+ System.getProperty("line.separator");
 		out.write(s);
 		out.close();
@@ -216,6 +251,7 @@ public class DurationCollector {
 		} finally {
 			if (driver != null) {
 				driver.quit();
+				driver = null;
 			}
 			log("Finished, started at : " + start.toString());
 		}
