@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,13 +26,19 @@ public class DurationCollector {
 		String routeId;
 		String homeLocation;
 		String workLocation;
-		int dayOfWeek;
+		int startDayOfWeek;
+		int endDayOfWeek;
 
-		CollectionParams(String routeId, String homeLocation, String workLocation, int dayOfWeek) {
+		CollectionParams(String routeId, String homeLocation, String workLocation, int startDayOfWeek,
+				int endDayOfWeek) {
 			this.routeId = routeId;
 			this.homeLocation = homeLocation;
 			this.workLocation = workLocation;
-			this.dayOfWeek = dayOfWeek;
+			this.startDayOfWeek = startDayOfWeek;
+		}
+
+		public String toString() {
+			return routeId + "_" + getDayOfWeek(startDayOfWeek);
 		}
 	}
 
@@ -68,17 +75,22 @@ public class DurationCollector {
 		dirForResults = d + pathEnd;
 	}
 
+	String getDayOfWeek(int dayOfWeek) {
+		Calendar c = Calendar.getInstance();
+		c.set(Calendar.DAY_OF_WEEK, dayOfWeek);
+		return c.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault());
+	}
+
+	private void loadCollectionParams(String start, String end, String id, int startDOW, int endDOW) throws Exception {
+		collectionParams.add(new CollectionParams(/* name of data set file */ "to_" + id, /* start location */ start,
+				/* destination location */ end, startDOW, endDOW));
+		collectionParams.add(new CollectionParams(/* name of data set file */ "from_" + id,
+				/* destination location */ end, /* start location */ start, startDOW, endDOW));
+	}
+
 	private void loadCollectionParams() throws Exception {
-		Integer[] daysOfWeek = { Calendar.SUNDAY }; // TODO : get dayofweek working ----- , Calendar.WEDNESDAY, Calendar.FRIDAY, Calendar.SATURDAY };
-		for (Integer dayOfWeek : daysOfWeek) {
-			collectionParams.add(new CollectionParams(/* name of data set file */ "to_Netsuite_" + dayOfWeek,
-					/* start location */ "2408 E. 24th Street, Oakland CA",
-					/* destination location */ "2955 Campus Dr, 100, San Mateo, CA 94403", dayOfWeek));
-			collectionParams.add(new CollectionParams(/* name of data set file */ "from_Netsuite_" + dayOfWeek,
-					/* destination location */ "2955 Campus Dr, 100, San Mateo, CA 94403",
-					/* start location */ "2408 E. 24th Street, Oakland CA",
-					dayOfWeek));
-		}
+		loadCollectionParams("950 Minnesota Street, San Francisco, CA", "Oracle Parkway, Redwood City, CA", "Oracle", Calendar.MONDAY, Calendar.MONDAY);
+		loadCollectionParams("cornell ave, albany, ca", "4799 Shattuck Ave, Oakland, CA 94114", "CCL", Calendar.SUNDAY, Calendar.MONDAY);
 	}
 
 	private int minutesFromString(String s) {
@@ -104,23 +116,39 @@ public class DurationCollector {
 		return minutes;
 	}
 
-	private void setUpPage(String origin, String destination) throws Exception {
+	// TODO : Any way to replace all calls to Thread.sleep() ?
+	private void setUpPage(CollectionParams cp) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.id("searchboxinput")));
-		driver.findElement(By.id("searchboxinput")).sendKeys(destination + "\n");
+		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
 
 		// wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("section-hero-header-directions")));
-		Thread.sleep(10 * 1000); // TODO : any way to wait here instead of sleep?
+		Thread.sleep(10 * 1000);
 		driver.findElement(By.className("section-hero-header-directions")).click();
 
 		WebElement currentElement = driver.switchTo().activeElement();
-		currentElement.sendKeys(origin + "\n");
+		currentElement.sendKeys(cp.homeLocation + "\n");
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Leave now\")]]")));
 		driver.findElement(By.xpath("//*[text()[contains(.,\"Leave now\")]]")).click();
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Depart at\")]]")));
 		driver.findElement(By.xpath("//*[text()[contains(.,\"Depart at\")]]")).click();
+
+		// TODO : Figure out Google Maps algorithm for creating id's for calendar
+		// elements, or some other way of specifying the day.
+		//
+		// driver.findElement(By.className("date-input")).click();
+		// driver.findElement(By.id(idFromDay(cp.dayOfWeek))).click();
+		// Thread.sleep(5000);
+
+		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString());
+		System.in.read();
+	}
+
+	@SuppressWarnings("unused")
+	private String idFromDay(int dayOfWeek) {
+		return ":" + (char) (((int) 'a') + dayOfWeek - 1); // Calendar.SUNDAY == 1, not 0 .
 	}
 
 	private java.util.AbstractMap.SimpleEntry<Integer, Integer> collectDuration(Calendar ts) throws Exception {
@@ -132,12 +160,7 @@ public class DurationCollector {
 		timeEl.sendKeys(Keys.chord(Keys.DELETE));
 		timeEl.sendKeys(this.gMapsTimeFormat.format(ts.getTime()));
 		timeEl.sendKeys(Keys.chord(Keys.ENTER));
-
-		Thread.sleep(5000); // TODO : any way to wait here instead of sleep?
-
-//		driver.findElement(By.className("date-input")).click();
-// ... some more gibberish to click on appropriate day of month ...
-//		Thread.sleep(5000); // TODO : any way to wait here instead of sleep?
+		Thread.sleep(5000);
 
 		int minEstimate = Integer.MAX_VALUE;
 		int maxEstimate = Integer.MAX_VALUE;
@@ -166,13 +189,12 @@ public class DurationCollector {
 	private void initBrowserDriver() {
 		if (driver == null) {
 			driver = new FirefoxDriver();
-//			driver = new ChromeDriver(); // TODO : will this help with other TODO's?
 			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
 	}
 
-	private BufferedWriter getWriter(String routeId, boolean doAppend) throws Exception {
-		String filePathString = dirForResults + "/" + routeId + "_travelTimes.txt";
+	private BufferedWriter getWriter(CollectionParams cp, boolean doAppend) throws Exception {
+		String filePathString = dirForResults + "/" + cp.toString() + ".txt";
 		File f = new File(filePathString);
 		FileWriter fstream;
 		if (f.exists()) {
@@ -184,12 +206,12 @@ public class DurationCollector {
 	}
 
 	private void writeHeader(CollectionParams cp) throws Exception {
-		BufferedWriter out = this.getWriter(cp.routeId, true);
+		BufferedWriter out = this.getWriter(cp, true);
 		String s = cp.routeId + "\tminimum\taverage\tmaximum" + System.getProperty("line.separator");
 		out.write(s);
 		out.close();
 	}
-	
+
 	private void setupFile(CollectionParams cp) throws Exception {
 		String filePathString = dirForResults + "/" + cp.routeId + "_travelTimes.txt";
 		File f = new File(filePathString);
@@ -198,7 +220,7 @@ public class DurationCollector {
 		}
 		writeHeader(cp);
 	}
-	
+
 	private void collectDurations() throws Exception {
 		for (CollectionParams cp : collectionParams) {
 			initBrowserDriver();
@@ -206,13 +228,10 @@ public class DurationCollector {
 				setupFile(cp);
 				driver.get("https://maps.google.com/");
 
-				setUpPage(cp.workLocation, cp.homeLocation);
-				
-				System.out.println("Select appropriate day and press <ENTER> in the console window ...");
-				System.in.read();  // TODO : temporary to allow manual click on appropriate day of the week.
-				
+				setUpPage(cp);
+
 				Calendar ts = Calendar.getInstance();
-				ts.set(Calendar.DAY_OF_WEEK, cp.dayOfWeek);
+				ts.set(Calendar.DAY_OF_WEEK, cp.startDayOfWeek);
 				ts.set(Calendar.HOUR_OF_DAY, 4);
 				ts.set(Calendar.MINUTE, 0);
 				ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
@@ -232,7 +251,7 @@ public class DurationCollector {
 
 	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p)
 			throws Exception {
-		BufferedWriter out = this.getWriter(cp.routeId, true);
+		BufferedWriter out = this.getWriter(cp, true);
 		Integer average = (p.getKey() + p.getValue()) / 2;
 		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + average + "\t" + p.getValue()
 				+ System.getProperty("line.separator");
