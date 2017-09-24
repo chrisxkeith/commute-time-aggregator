@@ -36,4 +36,4 @@ Notes
   * Don't manually close browser window
   * Don't switch networks (e.g., log into a VPN)
   * Make sure that your browser is up-to-date
-* Assumes that Java VM is running in the appropriate time zone.
+* Does __not__ record which route is the fastest.
