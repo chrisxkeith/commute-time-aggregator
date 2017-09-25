@@ -85,13 +85,13 @@ public class DurationCollector {
 	private void loadCollectionParams(String start, String end, String id, int startDOW, int endDOW) throws Exception {
 		collectionParams.add(new CollectionParams(/* name of data set file */ "to_" + id, /* start location */ start,
 				/* destination location */ end, startDOW, endDOW));
-		collectionParams.add(new CollectionParams(/* name of data set file */ "from_" + id,
-				/* destination location */ end, /* start location */ start, startDOW, endDOW));
+//		collectionParams.add(new CollectionParams(/* name of data set file */ "from_" + id,
+//				/* destination location */ end, /* start location */ start, startDOW, endDOW));
 	}
 
 	private void loadCollectionParams() throws Exception {
 		loadCollectionParams("950 Minnesota Street, San Francisco, CA", "Oracle Parkway, Redwood City, CA", "Oracle", Calendar.MONDAY, Calendar.MONDAY);
-		loadCollectionParams("cornell ave, albany, ca", "4799 Shattuck Ave, Oakland, CA 94114", "CCL", Calendar.SUNDAY, Calendar.MONDAY);
+//		loadCollectionParams("cornell ave, albany, ca", "4799 Shattuck Ave, Oakland, CA 94114", "CCL", Calendar.SUNDAY, Calendar.MONDAY);
 	}
 
 	private int minutesFromString(String s) {
@@ -136,22 +136,16 @@ public class DurationCollector {
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Depart at\")]]")));
 		driver.findElement(By.xpath("//*[text()[contains(.,\"Depart at\")]]")).click();
 
-		// TODO : Figure out Google Maps algorithm for creating id's for calendar
-		// elements, or some other way of specifying the day.
-		//
 		// driver.findElement(By.className("date-input")).click();
-		// driver.findElement(By.id(idFromDay(cp.dayOfWeek))).click();
+		// TODO : Figure out Google Maps algorithm for creating id's for calendar elements,
+		//        or some other way of specifying the day.
+		// CSS path : html body.screen-mode div.goog-popupdatepicker.goog-date-picker table tbody tr td#:6.goog-date-picker-date.goog-date-picker-other-month.goog-date-picker-wkend-end
 		// Thread.sleep(5000);
 
 		// TODO : Doesn't work second time around. Console buffer not flushed?
-//		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString(dayOfWeek));
-//		System.in.read();
-//		log("Continuing with : " + cp.toString(dayOfWeek));
-	}
-
-	@SuppressWarnings("unused")
-	private String idFromDay(int dayOfWeek) {
-		return ":" + (char) (((int) 'a') + dayOfWeek - 1); // Calendar.SUNDAY == 1, not 0 .
+		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString(dayOfWeek));
+		System.in.read();
+		log("Continuing with : " + cp.toString(dayOfWeek));
 	}
 
 	private java.util.AbstractMap.SimpleEntry<Integer, Integer> collectDuration(Calendar ts) throws Exception {
