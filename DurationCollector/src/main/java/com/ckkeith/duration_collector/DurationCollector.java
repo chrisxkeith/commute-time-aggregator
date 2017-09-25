@@ -35,10 +35,11 @@ public class DurationCollector {
 			this.homeLocation = homeLocation;
 			this.workLocation = workLocation;
 			this.startDayOfWeek = startDayOfWeek;
+			this.endDayOfWeek = endDayOfWeek;
 		}
 
-		public String toString() {
-			return routeId + "_" + getDayOfWeek(startDayOfWeek);
+		public String toString(int dayOfWeek) {
+			return routeId + "_" + getDayOfWeek(dayOfWeek);
 		}
 	}
 
@@ -117,7 +118,7 @@ public class DurationCollector {
 	}
 
 	// TODO : Any way to replace all calls to Thread.sleep() ?
-	private void setUpPage(CollectionParams cp) throws Exception {
+	private void setUpPage(CollectionParams cp, int dayOfWeek) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.id("searchboxinput")));
 		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
@@ -142,8 +143,10 @@ public class DurationCollector {
 		// driver.findElement(By.id(idFromDay(cp.dayOfWeek))).click();
 		// Thread.sleep(5000);
 
-		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString());
-		System.in.read();
+		// TODO : Doesn't work second time around. Console buffer not flushed?
+//		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString(dayOfWeek));
+//		System.in.read();
+//		log("Continuing with : " + cp.toString(dayOfWeek));
 	}
 
 	@SuppressWarnings("unused")
@@ -193,8 +196,8 @@ public class DurationCollector {
 		}
 	}
 
-	private BufferedWriter getWriter(CollectionParams cp, boolean doAppend) throws Exception {
-		String filePathString = dirForResults + "/" + cp.toString() + ".txt";
+	private BufferedWriter getWriter(CollectionParams cp, boolean doAppend, int dayOfWeek) throws Exception {
+		String filePathString = getPath(cp, dayOfWeek);
 		File f = new File(filePathString);
 		FileWriter fstream;
 		if (f.exists()) {
@@ -205,41 +208,48 @@ public class DurationCollector {
 		return new BufferedWriter(fstream);
 	}
 
-	private void writeHeader(CollectionParams cp) throws Exception {
-		BufferedWriter out = this.getWriter(cp, true);
+	private void writeHeader(CollectionParams cp, int dayOfWeek) throws Exception {
+		BufferedWriter out = this.getWriter(cp, true, dayOfWeek);
 		String s = cp.routeId + "\tminimum\taverage\tmaximum" + System.getProperty("line.separator");
 		out.write(s);
 		out.close();
 	}
 
-	private void setupFile(CollectionParams cp) throws Exception {
-		String filePathString = dirForResults + "/" + cp.routeId + "_travelTimes.txt";
-		File f = new File(filePathString);
+	private String getPath(CollectionParams cp, int dayOfWeek) {
+		return dirForResults + "/" + cp.routeId + ".txt";
+	}
+
+	private void setupFile(CollectionParams cp, int dayOfWeek) throws Exception {
+		File f = new File(getPath(cp, dayOfWeek));
 		if (f.exists()) {
 			f.delete();
 		}
-		writeHeader(cp);
+		writeHeader(cp, dayOfWeek);
 	}
 
 	private void collectDurations() throws Exception {
 		for (CollectionParams cp : collectionParams) {
-			initBrowserDriver();
 			try {
-				setupFile(cp);
-				driver.get("https://maps.google.com/");
+				for (int dayOfWeek = cp.startDayOfWeek; dayOfWeek <= cp.endDayOfWeek; dayOfWeek++) {
+					initBrowserDriver();
+					setupFile(cp, dayOfWeek);
+					driver.get("https://maps.google.com/");
 
-				setUpPage(cp);
+					setUpPage(cp, dayOfWeek);
 
-				Calendar ts = Calendar.getInstance();
-				ts.set(Calendar.DAY_OF_WEEK, cp.startDayOfWeek);
-				ts.set(Calendar.HOUR_OF_DAY, 4);
-				ts.set(Calendar.MINUTE, 0);
-				ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
-				while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
-					java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-					writeDuration(cp, ts, newDuration);
-					ts.add(Calendar.MINUTE, 10);
+					Calendar ts = Calendar.getInstance();
+					ts.set(Calendar.DAY_OF_WEEK, dayOfWeek);
+					ts.set(Calendar.HOUR_OF_DAY, 4);
+					ts.set(Calendar.MINUTE, 0);
+					ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
+					while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
+						java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
+						writeDuration(cp, ts, newDuration, dayOfWeek);
+						ts.add(Calendar.MINUTE, 10);
+					}
 				}
+			} catch (Exception e) {
+				log(e);
 			} finally {
 				if (driver != null) {
 					driver.quit();
@@ -249,9 +259,9 @@ public class DurationCollector {
 		}
 	}
 
-	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p)
+	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p, int dayOfWeek)
 			throws Exception {
-		BufferedWriter out = this.getWriter(cp, true);
+		BufferedWriter out = this.getWriter(cp, true, dayOfWeek);
 		Integer average = (p.getKey() + p.getValue()) / 2;
 		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + average + "\t" + p.getValue()
 				+ System.getProperty("line.separator");
