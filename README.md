@@ -2,7 +2,7 @@ __Can break any time Google decides to change the HTML structure of their Maps p
 
 To build and run
 
-* Download and install Github tools from https://www.github.com
+* Download and install Github tools from https://desktop.github.com/
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice) 
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\Chris\mvn\ to avoid 'path to long' error
