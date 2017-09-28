@@ -90,7 +90,7 @@ public class DurationCollector {
 	}
 
 	private void loadCollectionParams() throws Exception {
-		loadCollectionParams("950 Minnesota Street, San Francisco, CA", "Oracle Parkway, Redwood City, CA", "Oracle", Calendar.MONDAY, Calendar.MONDAY);
+		loadCollectionParams("2415 Bay Rd, Redwood City, CA 94063", "343 Kenilworth Avenue, San Leandro, CA", "TechShop_Redwood_City", Calendar.MONDAY, Calendar.MONDAY);
 //		loadCollectionParams("cornell ave, albany, ca", "4799 Shattuck Ave, Oakland, CA 94114", "CCL", Calendar.SUNDAY, Calendar.MONDAY);
 	}
 
@@ -117,6 +117,27 @@ public class DurationCollector {
 		return minutes;
 	}
 
+	@SuppressWarnings("unused")
+	// Keep this around if clicking on calendar is unreliable.
+	private void manuallySetDayOfWeek(CollectionParams cp, int dayOfWeek) throws Exception {
+		// TODO : Doesn't work second time around. Console buffer not flushed?
+		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString(dayOfWeek));
+		System.in.read();
+		log("Continuing with : " + cp.toString(dayOfWeek));
+	}
+
+	private void clickOnDayOfWeek(int dayOfWeek) throws Exception {
+		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
+		wait.until(ExpectedConditions.elementToBeClickable(By.className("date-input")));
+		driver.findElement(By.className("date-input")).click();
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("td[class=\"goog-date-picker-date goog-date-picker-other-month goog-date-picker-wkend-end\"]")));
+		WebElement cell = driver.findElement(By.cssSelector("td[class=\"goog-date-picker-date goog-date-picker-other-month goog-date-picker-wkend-end\"]"));
+		WebElement parent = cell.findElement(By.xpath(".."));
+		List<WebElement> weekCells = parent.findElements(By.tagName("td"));
+		weekCells.get(dayOfWeek - 1).click();
+		Thread.sleep(5000);
+	}
+
 	// TODO : Any way to replace all calls to Thread.sleep() ?
 	private void setUpPage(CollectionParams cp, int dayOfWeek) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
@@ -135,19 +156,11 @@ public class DurationCollector {
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Depart at\")]]")));
 		driver.findElement(By.xpath("//*[text()[contains(.,\"Depart at\")]]")).click();
-
-		// driver.findElement(By.className("date-input")).click();
-		// TODO : Figure out Google Maps algorithm for creating id's for calendar elements,
-		//        or some other way of specifying the day.
-		// CSS path : html body.screen-mode div.goog-popupdatepicker.goog-date-picker table tbody tr td#:6.goog-date-picker-date.goog-date-picker-other-month.goog-date-picker-wkend-end
-		// Thread.sleep(5000);
-
-		// TODO : Doesn't work second time around. Console buffer not flushed?
-		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString(dayOfWeek));
-		System.in.read();
-		log("Continuing with : " + cp.toString(dayOfWeek));
+		clickOnDayOfWeek(dayOfWeek);
+		// manuallySetDayOfWeek(cp, dayOfWeek);
 	}
 
+	// TODO : add the 'name' of the route.
 	private java.util.AbstractMap.SimpleEntry<Integer, Integer> collectDuration(Calendar ts) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 
@@ -238,7 +251,11 @@ public class DurationCollector {
 					ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
 					while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
 						java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-						writeDuration(cp, ts, newDuration, dayOfWeek);
+						if ((newDuration.getKey() != Integer.MAX_VALUE) && (newDuration.getValue() != Integer.MAX_VALUE)) {
+							writeDuration(cp, ts, newDuration, dayOfWeek);
+						} else {
+							log("Invalid data for : " + ts);
+						}
 						ts.add(Calendar.MINUTE, 10);
 					}
 				}
