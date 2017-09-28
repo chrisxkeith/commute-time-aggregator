@@ -85,13 +85,12 @@ public class DurationCollector {
 	private void loadCollectionParams(String start, String end, String id, int startDOW, int endDOW) throws Exception {
 		collectionParams.add(new CollectionParams(/* name of data set file */ "to_" + id, /* start location */ start,
 				/* destination location */ end, startDOW, endDOW));
-//		collectionParams.add(new CollectionParams(/* name of data set file */ "from_" + id,
-//				/* destination location */ end, /* start location */ start, startDOW, endDOW));
+		collectionParams.add(new CollectionParams(/* name of data set file */ "from_" + id,
+				/* destination location */ end, /* start location */ start, startDOW, endDOW));
 	}
 
 	private void loadCollectionParams() throws Exception {
-		loadCollectionParams("2415 Bay Rd, Redwood City, CA 94063", "343 Kenilworth Avenue, San Leandro, CA", "TechShop_Redwood_City", Calendar.MONDAY, Calendar.MONDAY);
-//		loadCollectionParams("cornell ave, albany, ca", "4799 Shattuck Ave, Oakland, CA 94114", "CCL", Calendar.SUNDAY, Calendar.MONDAY);
+		loadCollectionParams("343 Kenilworth Avenue, San Leandro, CA", "2415 Bay Rd, Redwood City, CA 94063", "CK_TechShop_Redwood_City", Calendar.SUNDAY, Calendar.SATURDAY);
 	}
 
 	private int minutesFromString(String s) {
