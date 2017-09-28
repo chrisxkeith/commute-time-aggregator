@@ -36,4 +36,6 @@ Notes
   * Don't manually close browser window
   * Don't switch networks (e.g., log into a VPN)
   * Make sure that your browser is up-to-date
-* Does __not__ record which route is the fastest.
+* Does __not__ record which route is the fastest (currently).
+* Waze has similar functionality, but does not show a range of times.
+
