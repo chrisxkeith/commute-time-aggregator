@@ -44,7 +44,8 @@ public class DurationCollector {
 	}
 
 	final boolean isDebug;
-	final int sleepSeconds = 30;
+	final int sleepFactor = 1; // increase for slower computers.
+	final int sleepSeconds = 30 * sleepFactor;
 	final private String dirForResults;
 
 	final private Pattern digitPattern = Pattern.compile("[0-9]+");
