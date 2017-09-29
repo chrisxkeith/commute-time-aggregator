@@ -59,6 +59,7 @@ public class DurationCollector {
 	final private List<CollectionParams> collectionParams = new ArrayList<CollectionParams>();
 
 	private WebDriver driver = null;
+	private String otherCollectionParamsFileName = null;
 
 	public DurationCollector(String[] args) {
 		isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
@@ -75,6 +76,11 @@ public class DurationCollector {
 			throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
 		}
 		dirForResults = d + pathEnd;
+		String inputFileName = d + File.separator + "Documents" + File.separator + "routeInfo.txt";
+		File f = new File(inputFileName);
+		if (f.exists()) {
+			otherCollectionParamsFileName = inputFileName;
+		}
 	}
 
 	String getDayOfWeek(int dayOfWeek) {
@@ -91,7 +97,35 @@ public class DurationCollector {
 	}
 
 	private void loadCollectionParams() throws Exception {
-		loadCollectionParams("343 Kenilworth Avenue, San Leandro, CA", "2415 Bay Rd, Redwood City, CA 94063", "CK_TechShop_Redwood_City", Calendar.SUNDAY, Calendar.SATURDAY);
+		collectionParams.clear();
+		if (otherCollectionParamsFileName != null) {
+			File otherCollectionParams = new File(otherCollectionParamsFileName);
+			if (otherCollectionParams.exists()) {
+				BufferedReader br = new BufferedReader(new FileReader(otherCollectionParamsFileName));
+				try {
+					String personId = br.readLine();
+					while (personId != null) {
+						String home = br.readLine();
+						if (home == null) {
+							throw new RuntimeException("Home not specified for: " + personId);
+						}
+						String work = br.readLine();
+						if (work == null) {
+							throw new RuntimeException("Work not specified for: " + personId);
+						}
+						String firstDayOfWeek = br.readLine();
+						String lastDayOfWeek = br.readLine();
+						collectionParams.add(new CollectionParams(personId, home, work,
+								Integer.parseInt(firstDayOfWeek), Integer.parseInt(lastDayOfWeek)));
+						personId = br.readLine();
+					}
+				} finally {
+					br.close();
+				}
+			}
+		}
+		loadCollectionParams("343 Kenilworth Avenue, San Leandro, CA", "2415 Bay Rd, Redwood City, CA 94063",
+				"CK_TechShop_Redwood_City", Calendar.SUNDAY, Calendar.SATURDAY);
 	}
 
 	private int minutesFromString(String s) {
@@ -121,7 +155,8 @@ public class DurationCollector {
 	// Keep this around if clicking on calendar is unreliable.
 	private void manuallySetDayOfWeek(CollectionParams cp, int dayOfWeek) throws Exception {
 		// TODO : Doesn't work second time around. Console buffer not flushed?
-		log("Manually select day in browser, then click back into console and press <ENTER> for : " + cp.toString(dayOfWeek));
+		log("Manually select day in browser, then click back into console and press <ENTER> for : "
+				+ cp.toString(dayOfWeek));
 		System.in.read();
 		log("Continuing with : " + cp.toString(dayOfWeek));
 	}
@@ -130,8 +165,10 @@ public class DurationCollector {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.className("date-input")));
 		driver.findElement(By.className("date-input")).click();
-		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("td[class=\"goog-date-picker-date goog-date-picker-other-month goog-date-picker-wkend-end\"]")));
-		WebElement cell = driver.findElement(By.cssSelector("td[class=\"goog-date-picker-date goog-date-picker-other-month goog-date-picker-wkend-end\"]"));
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(
+				"td[class=\"goog-date-picker-date goog-date-picker-other-month goog-date-picker-wkend-end\"]")));
+		WebElement cell = driver.findElement(By.cssSelector(
+				"td[class=\"goog-date-picker-date goog-date-picker-other-month goog-date-picker-wkend-end\"]"));
 		WebElement parent = cell.findElement(By.xpath(".."));
 		List<WebElement> weekCells = parent.findElements(By.tagName("td"));
 		weekCells.get(dayOfWeek - 1).click();
@@ -251,7 +288,8 @@ public class DurationCollector {
 					ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
 					while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
 						java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-						if ((newDuration.getKey() != Integer.MAX_VALUE) && (newDuration.getValue() != Integer.MAX_VALUE)) {
+						if ((newDuration.getKey() != Integer.MAX_VALUE)
+								&& (newDuration.getValue() != Integer.MAX_VALUE)) {
 							writeDuration(cp, ts, newDuration, dayOfWeek);
 						} else {
 							log("Invalid data for : " + ts);
@@ -270,8 +308,8 @@ public class DurationCollector {
 		}
 	}
 
-	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p, int dayOfWeek)
-			throws Exception {
+	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p,
+			int dayOfWeek) throws Exception {
 		BufferedWriter out = this.getWriter(cp, true, dayOfWeek);
 		Integer average = (p.getKey() + p.getValue()) / 2;
 		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + average + "\t" + p.getValue()
