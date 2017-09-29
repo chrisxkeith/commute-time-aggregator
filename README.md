@@ -2,8 +2,10 @@ __Can break any time Google decides to change the HTML structure of their Maps p
 
 To build and run
 
-* Download and install Github tools from https://www.github.com
-* Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice) 
+* Download and install Github tools from https://desktop.github.com/
+* Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice)
+* Download and install Java Development Kit : http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+  * Set JAVA_HOME environment variable
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\Chris\mvn\ to avoid 'path to long' error
   * Add to path : C:\Users\Chris\mvn\apache-maven-3.5.0\bin
@@ -36,4 +38,6 @@ Notes
   * Don't manually close browser window
   * Don't switch networks (e.g., log into a VPN)
   * Make sure that your browser is up-to-date
-* Does __not__ record which route is the fastest.
+* Does __not__ record which route is the fastest (currently).
+* Waze has similar functionality, but does not show a range of times.
+
