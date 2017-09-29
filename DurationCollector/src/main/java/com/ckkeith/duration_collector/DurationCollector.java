@@ -44,7 +44,7 @@ public class DurationCollector {
 	}
 
 	final boolean isDebug;
-	final int sleepFactor = 1; // increase for slower computers.
+	final int sleepFactor = 2; // increase for slower computers.
 	final int sleepSeconds = 30 * sleepFactor;
 	final private String dirForResults;
 
@@ -92,6 +92,12 @@ public class DurationCollector {
 
 	private void loadCollectionParams() throws Exception {
 		loadCollectionParams("343 Kenilworth Avenue, San Leandro, CA", "2415 Bay Rd, Redwood City, CA 94063", "CK_TechShop_Redwood_City", Calendar.SUNDAY, Calendar.SATURDAY);
+		loadCollectionParams("cornell ave, albany, ca", "4799 Shattuck Ave, Oakland, CA 94114", "Michael_CCL", Calendar.SUNDAY, Calendar.MONDAY);
+		loadCollectionParams("950 Minnesota Street, San Francisco, CA ", "Oracle Parkway, Redwood City, CA", "Phil_Oracle", Calendar.SUNDAY, Calendar.MONDAY);
+		loadCollectionParams("874 Maranta Ave. Sunnyvale, CA 94087", "5100 Hopyard Rd, Pleasanton, CA 94588", "Tom_Black_Bear", Calendar.FRIDAY, Calendar.FRIDAY);
+		loadCollectionParams("1008 Fontana Drive, Alameda, CA 94502", "5100 Hopyard Rd, Pleasanton, CA 94588", "Andrey_Black_Bear", Calendar.FRIDAY, Calendar.FRIDAY);
+		loadCollectionParams("43630 Vista Del Mar, Fremont, CA 94539", "5100 Hopyard Rd, Pleasanton, CA 94588", "Nick_Black_Bear", Calendar.FRIDAY, Calendar.FRIDAY);
+		loadCollectionParams("Grimmer Boulevard, Fremont, CA", "2415 Bay Rd, Redwood City, CA 94063", "Ben_TechShop_Redwood_City", Calendar.FRIDAY, Calendar.SATURDAY);
 	}
 
 	private int minutesFromString(String s) {

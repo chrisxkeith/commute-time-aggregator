@@ -1,4 +1,10 @@
-WebDriverException
-ArrayIndexOutOfBoundsException
-TimeoutException
+ElementNotInteractible
+IllegalStateException
 NoSuchSessionException
+TimeoutException - org.openqa.selenium
+WebDriverException
+
+These may be triggered by other packages:
+
+ArrayIndexOutOfBoundsException
+IllegalArgumentException - java.lang
