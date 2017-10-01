@@ -20,20 +20,24 @@ To build and run
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
 * In STS
   * File > Import > the maven pom.xml file/project
-  * Set parameters in DurationCollector.java (__TODO__ : see comments at top of file)
+  * Set parameters in input file. See DurationCollector() and loadCollectionParams()
 * In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
   * ...It may take a minute or two for the browser to come up
 
+To increase the odds that you'll get data
+
+  * Make sure that your browser is up-to-date.
+  * Don't click in browser window.
+  * Don't switch networks (e.g., log into a VPN).
+  * Try not to hover the mouse pointer over the browser window . Use keyboard to change between windows.
+  * Don't close browser window.
+ 
 Notes
 
 * Scrapes google maps for estimated commute duration
 * Writes duration and time stamp to tab-separated file
-* To get good data while running:
-  * Don't manually close browser window
-  * Don't switch networks (e.g., log into a VPN)
-  * Make sure that your browser is up-to-date
 * Does __not__ record which route is the fastest (currently).
 * Waze has similar functionality, but does not show a range of times.
 * _if you want to try Chrome_ ----- Google Chrome browser (doesn't work yet)
