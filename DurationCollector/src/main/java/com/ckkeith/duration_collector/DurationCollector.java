@@ -54,7 +54,10 @@ public class DurationCollector {
 	// A format that will convert to a date when pasted into a Google spreadsheet.
 	final private SimpleDateFormat outputDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm");
 
-	// Formats that will convert to format for the Maps web page.
+	// A format that will convert into ISO 8601 (I think).
+	final private SimpleDateFormat logDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX");
+
+	// Format that will convert to string for the Google Maps web page.
 	final private SimpleDateFormat gMapsTimeFormat = new SimpleDateFormat("HH:mm a");
 
 	final private List<CollectionParams> collectionParams = new ArrayList<CollectionParams>();
@@ -84,8 +87,14 @@ public class DurationCollector {
 		if (!f.exists()) {
 			throw new Exception("No file : " + otherCollectionParamsFileName);
 		}
-		logFileName = d + File.separator + "Documents" + File.separator + "tmp" + File.separator + "routeInfo_"
-				+ UUID.randomUUID().toString() + ".log";
+		String tmpDir = d + File.separator + "Documents" + File.separator + "tmp";
+		try {
+			new File(tmpDir).mkdir();
+		} catch (Exception e) {
+			System.out.println("Unable to create : " + tmpDir);
+			throw e;
+		}
+		logFileName = tmpDir + File.separator + "routeInfo_" + UUID.randomUUID().toString() + ".log";
 	}
 
 	String getDayOfWeek(int dayOfWeek) {
@@ -180,6 +189,7 @@ public class DurationCollector {
 
 	// TODO : Any way to replace all calls to Thread.sleep() ?
 	private void setUpPage(CollectionParams cp, int dayOfWeek) throws Exception {
+		driver.get("https://maps.google.com/");
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.id("searchboxinput")));
 		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
@@ -275,45 +285,48 @@ public class DurationCollector {
 		writeHeader(cp, dayOfWeek);
 	}
 
+	private void collectData(CollectionParams cp, int dayOfWeek) {
+		log("Starting : " + cp.toString(dayOfWeek));
+		Calendar ts = Calendar.getInstance();
+		ts.set(Calendar.DAY_OF_WEEK, dayOfWeek);
+		ts.set(Calendar.HOUR_OF_DAY, 4);
+		ts.set(Calendar.MINUTE, 0);
+		ts.add(Calendar.HOUR, 0); // force Calendar internal recalculation.
+		int endHour;
+		if (isDebug) {
+			endHour = 5;
+		} else {
+			endHour = 20;
+		}
+		while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
+			try {
+				java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
+				if ((newDuration.getKey() != Integer.MAX_VALUE)
+						&& (newDuration.getValue() != Integer.MAX_VALUE)) {
+					writeDuration(cp, ts, newDuration, dayOfWeek);
+				} else {
+					log("Invalid data for : " + ts);
+				}
+			} catch (Exception e) {
+				log("Inside while : " + e);
+				if (driver.getPageSource().contains("Sorry, we could not calculate directions from ")) {
+					ts.add(Calendar.MINUTE, 10);
+					continue; // Unknown why this happens, try getting data for the next day...
+				}
+			}
+			ts.add(Calendar.MINUTE, 10);
+		}
+		log("Finished : " + cp.toString(dayOfWeek));
+	}
+
 	private void collectDurations() throws Exception {
 		for (CollectionParams cp : collectionParams) {
 			try {
 				for (int dayOfWeek = cp.startDayOfWeek; dayOfWeek <= cp.endDayOfWeek; dayOfWeek++) {
 					initBrowserDriver();
 					setupFile(cp, dayOfWeek);
-					driver.get("https://maps.google.com/");
-
 					setUpPage(cp, dayOfWeek);
-
-					Calendar ts = Calendar.getInstance();
-					ts.set(Calendar.DAY_OF_WEEK, dayOfWeek);
-					ts.set(Calendar.HOUR_OF_DAY, 4);
-					ts.set(Calendar.MINUTE, 0);
-					ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
-					int endHour;
-					if (isDebug) {
-						endHour = 5;
-					} else {
-						endHour = 20;
-					}
-					while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
-						try {
-							java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-							if ((newDuration.getKey() != Integer.MAX_VALUE)
-									&& (newDuration.getValue() != Integer.MAX_VALUE)) {
-								writeDuration(cp, ts, newDuration, dayOfWeek);
-							} else {
-								log("Invalid data for : " + ts);
-							}
-						} catch (Exception e) {
-							log("Inside while : " + e);
-							if (driver.getPageSource().contains("Sorry, we could not calculate directions from ")) {
-								ts.add(Calendar.MINUTE, 10);
-								continue; // Unknown why this happens, try getting data for the next day...
-							}
-						}
-						ts.add(Calendar.MINUTE, 10);
-					}
+					collectData(cp, dayOfWeek);
 				}
 			} catch (Exception e) {
 				log(e);
@@ -337,9 +350,8 @@ public class DurationCollector {
 	}
 
 	public void run() {
-		Date start = new Date();
 		try {
-			log("Starting ...");
+			log("Starting all");
 			loadCollectionParams();
 			collectDurations();
 		} catch (Exception e) {
@@ -349,8 +361,7 @@ public class DurationCollector {
 				driver.quit();
 				driver = null;
 			}
-			// TODO : do the arithmetic
-			log("Finished, started at : " + start.toString());
+			log("Finished all");
 		}
 	}
 
@@ -360,15 +371,16 @@ public class DurationCollector {
 	}
 
 	private void log(String s) {
+		String d = logDateFormat.format(new Date());
 		try {
-			String msg = new Date().toString() + "\t" + s + "\ttotalCalls : " + totalCalls;
+			String msg = d + "\t" + s + "\ttotalCalls : " + totalCalls;
 			System.out.println(msg);
 			FileWriter fstream = new FileWriter(logFileName, true);
 			fstream.write(msg + System.getProperty("line.separator"));
 			fstream.close();
 		} catch (Exception e) {
 			System.out
-					.println(new Date().toString() + "\tError writing log file : " + logFileName + "\t" + e.toString());
+					.println(d + "\tError writing log file : " + logFileName + "\t" + e.toString());
 		}
 	}
 
