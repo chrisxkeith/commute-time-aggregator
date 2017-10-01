@@ -60,6 +60,7 @@ public class DurationCollector {
 
 	private WebDriver driver = null;
 	private String otherCollectionParamsFileName = null;
+	private int totalCalls;
 
 	public DurationCollector(String[] args) {
 		isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
@@ -81,6 +82,7 @@ public class DurationCollector {
 		if (f.exists()) {
 			otherCollectionParamsFileName = inputFileName;
 		}
+		totalCalls = 0;
 	}
 
 	String getDayOfWeek(int dayOfWeek) {
@@ -154,7 +156,7 @@ public class DurationCollector {
 	@SuppressWarnings("unused")
 	// Keep this around if clicking on calendar is unreliable.
 	private void manuallySetDayOfWeek(CollectionParams cp, int dayOfWeek) throws Exception {
-		// TODO : Doesn't work second time around. Console buffer not flushed?
+		// Doesn't work second time around. Console buffer not flushed?
 		log("Manually select day in browser, then click back into console and press <ENTER> for : "
 				+ cp.toString(dayOfWeek));
 		System.in.read();
@@ -207,6 +209,7 @@ public class DurationCollector {
 		timeEl.sendKeys(Keys.chord(Keys.DELETE));
 		timeEl.sendKeys(this.gMapsTimeFormat.format(ts.getTime()));
 		timeEl.sendKeys(Keys.chord(Keys.ENTER));
+		totalCalls++;
 		Thread.sleep(5000);
 
 		int minEstimate = Integer.MAX_VALUE;
@@ -287,12 +290,20 @@ public class DurationCollector {
 					ts.set(Calendar.MINUTE, 0);
 					ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
 					while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
-						java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-						if ((newDuration.getKey() != Integer.MAX_VALUE)
-								&& (newDuration.getValue() != Integer.MAX_VALUE)) {
-							writeDuration(cp, ts, newDuration, dayOfWeek);
-						} else {
-							log("Invalid data for : " + ts);
+						try {
+							java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
+							if ((newDuration.getKey() != Integer.MAX_VALUE)
+									&& (newDuration.getValue() != Integer.MAX_VALUE)) {
+								writeDuration(cp, ts, newDuration, dayOfWeek);
+							} else {
+								log("Invalid data for : " + ts);
+							}
+						} catch (Exception e) {
+							log("Inside while : " + e);
+							if (driver.getPageSource().contains("Sorry, we could not calculate directions from ")) {
+								ts.add(Calendar.MINUTE, 10);
+								continue; // Unknown why this happens, try getting data for the next day...
+							}
 						}
 						ts.add(Calendar.MINUTE, 10);
 					}
@@ -337,11 +348,12 @@ public class DurationCollector {
 
 	private void log(Exception e) {
 		e.printStackTrace();
-		System.out.println(new Date().toString() + "\t" + e);
+		log(e.toString());
 	}
 
 	private void log(String s) {
-		System.out.println(new Date().toString() + "\t" + s);
+		// TODO : also write to log file
+		System.out.println(new Date().toString() + "\t" + s + " totalCalls : " + totalCalls);
 	}
 
 	public static void main(String[] args) {
