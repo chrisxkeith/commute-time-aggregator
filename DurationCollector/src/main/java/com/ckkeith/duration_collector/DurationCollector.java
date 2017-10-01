@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,9 +61,10 @@ public class DurationCollector {
 
 	private WebDriver driver = null;
 	private String otherCollectionParamsFileName = null;
-	private int totalCalls;
+	private String logFileName = null;
+	private int totalCalls = 0;
 
-	public DurationCollector(String[] args) {
+	public DurationCollector(String[] args) throws Exception {
 		isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
 				.indexOf("jdwp") >= 0;
 		String d = System.getProperty("user.home");
@@ -77,12 +79,13 @@ public class DurationCollector {
 			throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
 		}
 		dirForResults = d + pathEnd;
-		String inputFileName = d + File.separator + "Documents" + File.separator + "routeInfo.txt";
-		File f = new File(inputFileName);
-		if (f.exists()) {
-			otherCollectionParamsFileName = inputFileName;
+		otherCollectionParamsFileName = d + File.separator + "Documents" + File.separator + "routeInfo.txt";
+		File f = new File(otherCollectionParamsFileName);
+		if (!f.exists()) {
+			throw new Exception("No file : " + otherCollectionParamsFileName);
 		}
-		totalCalls = 0;
+		logFileName = d + File.separator + "Documents" + File.separator + "tmp" + File.separator + "routeInfo_"
+				+ UUID.randomUUID().toString() + ".log";
 	}
 
 	String getDayOfWeek(int dayOfWeek) {
@@ -98,36 +101,34 @@ public class DurationCollector {
 				/* destination location */ end, /* start location */ start, startDOW, endDOW));
 	}
 
+	private String getNextLine(BufferedReader br, String name) throws Exception {
+		String s = br.readLine();
+		if (s == null || s.isEmpty()) {
+			throw new RuntimeException(name + " not specified");
+		}
+		return s;
+	}
+
 	private void loadCollectionParams() throws Exception {
 		collectionParams.clear();
-		if (otherCollectionParamsFileName != null) {
-			File otherCollectionParams = new File(otherCollectionParamsFileName);
-			if (otherCollectionParams.exists()) {
-				BufferedReader br = new BufferedReader(new FileReader(otherCollectionParamsFileName));
-				try {
-					String personId = br.readLine();
-					while (personId != null) {
-						String home = br.readLine();
-						if (home == null) {
-							throw new RuntimeException("Home not specified for: " + personId);
-						}
-						String work = br.readLine();
-						if (work == null) {
-							throw new RuntimeException("Work not specified for: " + personId);
-						}
-						String firstDayOfWeek = br.readLine();
-						String lastDayOfWeek = br.readLine();
-						collectionParams.add(new CollectionParams(personId, home, work,
-								Integer.parseInt(firstDayOfWeek), Integer.parseInt(lastDayOfWeek)));
-						personId = br.readLine();
-					}
-				} finally {
-					br.close();
-				}
-			}
+		if (otherCollectionParamsFileName == null || this.otherCollectionParamsFileName.isEmpty()) {
+			throw new Exception("No otherCollectionParamsFileName specified");
 		}
-		loadCollectionParams("343 Kenilworth Avenue, San Leandro, CA", "2415 Bay Rd, Redwood City, CA 94063",
-				"CK_TechShop_Redwood_City", Calendar.SUNDAY, Calendar.SATURDAY);
+		BufferedReader br = new BufferedReader(new FileReader(otherCollectionParamsFileName));
+		try {
+			String personId = br.readLine();
+			while (personId != null && !personId.isEmpty()) {
+				String home = getNextLine(br, "start");
+				String work = getNextLine(br, "destination");
+				String firstDayOfWeek = getNextLine(br, "firstDayOfWeek");
+				String lastDayOfWeek = getNextLine(br, "lastDayOfWeek");
+				loadCollectionParams(home, work, personId, Integer.parseInt(firstDayOfWeek),
+						Integer.parseInt(lastDayOfWeek));
+				personId = br.readLine();
+			}
+		} finally {
+			br.close();
+		}
 	}
 
 	private int minutesFromString(String s) {
@@ -289,7 +290,13 @@ public class DurationCollector {
 					ts.set(Calendar.HOUR_OF_DAY, 4);
 					ts.set(Calendar.MINUTE, 0);
 					ts.add(Calendar.HOUR, 0); // force Calendar internal recalc.
-					while (ts.get(Calendar.HOUR_OF_DAY) < 20) {
+					int endHour;
+					if (isDebug) {
+						endHour = 5;
+					} else {
+						endHour = 20;
+					}
+					while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
 						try {
 							java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
 							if ((newDuration.getKey() != Integer.MAX_VALUE)
@@ -342,21 +349,34 @@ public class DurationCollector {
 				driver.quit();
 				driver = null;
 			}
+			// TODO : do the arithmetic
 			log("Finished, started at : " + start.toString());
 		}
 	}
 
 	private void log(Exception e) {
 		e.printStackTrace();
-		log(e.toString());
+		log(e.getMessage());
 	}
 
 	private void log(String s) {
-		// TODO : also write to log file
-		System.out.println(new Date().toString() + "\t" + s + " totalCalls : " + totalCalls);
+		try {
+			String msg = new Date().toString() + "\t" + s + "\ttotalCalls : " + totalCalls;
+			System.out.println(msg);
+			FileWriter fstream = new FileWriter(logFileName, true);
+			fstream.write(msg + System.getProperty("line.separator"));
+			fstream.close();
+		} catch (Exception e) {
+			System.out
+					.println(new Date().toString() + "\tError writing log file : " + logFileName + "\t" + e.toString());
+		}
 	}
 
 	public static void main(String[] args) {
-		new DurationCollector(args).run();
+		try {
+			new DurationCollector(args).run();
+		} catch (Exception e) {
+			System.out.println(new Date().toString() + "\t" + e.getMessage());
+		}
 	}
 }
