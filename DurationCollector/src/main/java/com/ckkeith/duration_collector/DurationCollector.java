@@ -79,7 +79,12 @@ public class DurationCollector {
 				+ "commute-time-aggregator" + File.separator + "DurationCollector" + File.separator + "data";
 		File dir = new File(d + pathEnd);
 		if (!dir.exists()) {
-			throw new RuntimeException("Unable to find: " + dir.getAbsolutePath());
+			try {
+				dir.mkdir();
+			} catch (Exception e) {
+				System.out.println("Unable to create : " + d + pathEnd);
+				throw e;
+			}
 		}
 		dirForResults = d + pathEnd;
 		otherCollectionParamsFileName = d + File.separator + "Documents" + File.separator + "routeInfo.txt";
@@ -330,6 +335,7 @@ public class DurationCollector {
 				}
 			} catch (Exception e) {
 				log(e);
+				driver = null;
 			} finally {
 				if (driver != null) {
 					driver.quit();
@@ -356,6 +362,7 @@ public class DurationCollector {
 			collectDurations();
 		} catch (Exception e) {
 			log(e);
+			driver = null;
 		} finally {
 			if (driver != null) {
 				driver.quit();
