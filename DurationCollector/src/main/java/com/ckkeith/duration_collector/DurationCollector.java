@@ -44,6 +44,20 @@ public class DurationCollector {
 		}
 	}
 
+	class RouteEstimate {
+		public RouteEstimate(Integer minEstimate, Integer maxEstimate, String rawData, String routeName) {
+			super();
+			this.minEstimate = minEstimate;
+			this.maxEstimate = maxEstimate;
+			this.rawData = rawData;
+			this.routeName = routeName;
+		}
+		Integer	minEstimate;
+		Integer maxEstimate;
+		String rawData;
+		String routeName;
+	}
+
 	final boolean isDebug;
 	final int sleepFactor = 2; // increase for slower computers.
 	final int sleepSeconds = 30 * sleepFactor;
@@ -178,6 +192,7 @@ public class DurationCollector {
 		log("Continuing with : " + cp.toString(dayOfWeek));
 	}
 
+	// TODO : Any way to replace all calls to Thread.sleep() ?
 	private void clickOnDayOfWeek(int dayOfWeek) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.className("date-input")));
@@ -192,14 +207,13 @@ public class DurationCollector {
 		Thread.sleep(5000);
 	}
 
-	// TODO : Any way to replace all calls to Thread.sleep() ?
 	private void setUpPage(CollectionParams cp, int dayOfWeek) throws Exception {
 		driver.get("https://maps.google.com/");
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.id("searchboxinput")));
 		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
 
-		// wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("section-hero-header-directions")));
+//		wait.until(ExpectedConditions.elementToBeClickable(By.id("section-hero-header-directions")));
 		Thread.sleep(10 * 1000);
 		driver.findElement(By.className("section-hero-header-directions")).click();
 
@@ -215,8 +229,7 @@ public class DurationCollector {
 		// manuallySetDayOfWeek(cp, dayOfWeek);
 	}
 
-	// TODO : add the 'name' of the route.
-	private java.util.AbstractMap.SimpleEntry<Integer, Integer> collectDuration(Calendar ts) throws Exception {
+	private RouteEstimate collectDuration(Calendar ts) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.name("transit-time")));
@@ -233,8 +246,11 @@ public class DurationCollector {
 
 		// Google Maps can show multiple alternative routes. Find the minimum.
 		List<WebElement> wList = driver.findElements(By.xpath("//span[contains(text(), \"typically\")]"));
+		String durations = "not found";
+		String route = "not found";
 		for (WebElement w : wList) {
-			String durations = w.findElement(By.xpath("//span[contains(text(), \" min\")]")).getText();
+			durations = w.findElement(By.xpath("//span[contains(text(), \" min\")]")).getText();
+			route = w.findElement(By.xpath("//h1[contains(text(), \" via \")]")).getText();
 			if (durations.contains("-")) {
 				String[] rangeLimits = durations.split("-");
 				if (minEstimate > minutesFromString(rangeLimits[0])) {
@@ -249,7 +265,7 @@ public class DurationCollector {
 				}
 			}
 		}
-		return new java.util.AbstractMap.SimpleEntry<Integer, Integer>(minEstimate, maxEstimate);
+		return new RouteEstimate(minEstimate, maxEstimate, durations, route);
 	}
 
 	private void initBrowserDriver() {
@@ -273,7 +289,7 @@ public class DurationCollector {
 
 	private void writeHeader(CollectionParams cp, int dayOfWeek) throws Exception {
 		BufferedWriter out = this.getWriter(cp, true, dayOfWeek);
-		String s = cp.routeId + "\tminimum\taverage\tmaximum" + System.getProperty("line.separator");
+		String s = cp.routeId + "\tminimum\taverage\tmaximum\troute\traw" + System.getProperty("line.separator");
 		out.write(s);
 		out.close();
 	}
@@ -305,9 +321,9 @@ public class DurationCollector {
 		}
 		while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
 			try {
-				java.util.AbstractMap.SimpleEntry<Integer, Integer> newDuration = this.collectDuration(ts);
-				if ((newDuration.getKey() != Integer.MAX_VALUE)
-						&& (newDuration.getValue() != Integer.MAX_VALUE)) {
+				RouteEstimate newDuration = this.collectDuration(ts);
+				if ((newDuration.minEstimate != Integer.MAX_VALUE)
+						&& (newDuration.maxEstimate != Integer.MAX_VALUE)) {
 					writeDuration(cp, ts, newDuration, dayOfWeek);
 				} else {
 					log("Invalid data for : " + ts);
@@ -321,7 +337,7 @@ public class DurationCollector {
 			}
 			ts.add(Calendar.MINUTE, 10);
 		}
-		log("Finished : " + cp.toString(dayOfWeek));
+		log("Finished : " + cp.toString(dayOfWeek) + "\ttotalCalls : " + totalCalls);
 	}
 
 	private void collectDurations() throws Exception {
@@ -345,13 +361,20 @@ public class DurationCollector {
 		}
 	}
 
-	private void writeDuration(CollectionParams cp, Calendar ts, java.util.AbstractMap.SimpleEntry<Integer, Integer> p,
+	private void writeDuration(CollectionParams cp, Calendar ts, RouteEstimate newDuration,
 			int dayOfWeek) throws Exception {
+		Integer average = (newDuration.minEstimate + newDuration.maxEstimate) / 2;
+		String s = outputDateFormat.format(ts.getTime())
+				+ "\t" + newDuration.minEstimate
+				+ "\t" + average
+				+ "\t" + newDuration.maxEstimate
+				+ "\t" + newDuration.routeName
+				+ "\t" + newDuration.rawData;
+		if (isDebug) {
+			log(s);
+		}
 		BufferedWriter out = this.getWriter(cp, true, dayOfWeek);
-		Integer average = (p.getKey() + p.getValue()) / 2;
-		String s = outputDateFormat.format(ts.getTime()) + "\t" + p.getKey() + "\t" + average + "\t" + p.getValue()
-				+ System.getProperty("line.separator");
-		out.write(s);
+		out.write(s + System.getProperty("line.separator"));
 		out.close();
 	}
 
@@ -368,7 +391,7 @@ public class DurationCollector {
 				driver.quit();
 				driver = null;
 			}
-			log("Finished all");
+			log("Finished all\ttotalCalls : " + totalCalls);
 		}
 	}
 
@@ -380,7 +403,7 @@ public class DurationCollector {
 	private void log(String s) {
 		String d = logDateFormat.format(new Date());
 		try {
-			String msg = d + "\t" + s + "\ttotalCalls : " + totalCalls;
+			String msg = d + "\t" + s;
 			System.out.println(msg);
 			FileWriter fstream = new FileWriter(logFileName, true);
 			fstream.write(msg + System.getProperty("line.separator"));
