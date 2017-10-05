@@ -85,6 +85,7 @@ public class DurationCollector {
 	private String otherCollectionParamsFileName = null;
 	private String logFileName = null;
 	private int totalCalls = 0;
+	final private int MINUTES_PER_SAMPLE = 10;
 
 	public DurationCollector(String[] args) throws Exception {
 		isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
@@ -340,7 +341,7 @@ public class DurationCollector {
 				log("collectData()\t" + e);
 				throw e;
 			}
-			ts.add(Calendar.MINUTE, 10);
+			ts.add(Calendar.MINUTE, MINUTES_PER_SAMPLE);
 		}
 		log("Finished : " + cp.toString(dayOfWeek) + "\ttotalCalls : " + totalCalls);
 	}
