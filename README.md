@@ -37,8 +37,7 @@ To increase the odds that you'll get data
 Notes
 
 * Scrapes google maps for estimated commute duration
-* Writes duration and time stamp to tab-separated file
-* Does __not__ record which route is the fastest (currently).
+* Writes duration, time stamp and route to tab-separated file
 * Waze has similar functionality, but does not show a range of times.
 * _if you want to try Chrome_ ----- Google Chrome browser (doesn't work yet)
   * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
