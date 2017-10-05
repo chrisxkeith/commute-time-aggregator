@@ -52,10 +52,15 @@ public class DurationCollector {
 			this.rawData = rawData;
 			this.routeName = routeName;
 		}
-		Integer	minEstimate;
-		Integer maxEstimate;
-		String rawData;
-		String routeName;
+		Integer	minEstimate = Integer.MAX_VALUE;
+		Integer maxEstimate = Integer.MAX_VALUE;
+		String rawData = "unknown";
+		String routeName = "unknown";
+		
+		public String toString() {
+			return "minEstimate=" + minEstimate + ", maxEstimate=" + maxEstimate + ", rawData" + rawData
+					+ ", routeName" + routeName;
+		}
 	}
 
 	final boolean isDebug;
@@ -306,7 +311,7 @@ public class DurationCollector {
 		writeHeader(cp, dayOfWeek);
 	}
 
-	private void collectData(CollectionParams cp, int dayOfWeek) {
+	private void collectData(CollectionParams cp, int dayOfWeek) throws Throwable {
 		log("Starting : " + cp.toString(dayOfWeek));
 		Calendar ts = Calendar.getInstance();
 		ts.set(Calendar.DAY_OF_WEEK, dayOfWeek);
@@ -326,36 +331,36 @@ public class DurationCollector {
 						&& (newDuration.maxEstimate != Integer.MAX_VALUE)) {
 					writeDuration(cp, ts, newDuration, dayOfWeek);
 				} else {
-					log("Invalid data for : " + ts);
+					log("collectData()\tInvalid data\t" + newDuration.toString());
+					log("collectData()\t" + ts.toString());
+					log("collectData()\t" + driver.findElement(By.xpath("//body")).getText());
 				}
-			} catch (Exception e) {
-				log("Inside while : " + e);
-				if (driver.getPageSource().contains("Sorry, we could not calculate directions from ")) {
-					ts.add(Calendar.MINUTE, 10);
-					continue; // Unknown why this happens, try getting data for the next day...
-				}
+			} catch (Throwable e) {
+				log("collectData()\t" + ts.toString());
+				log("collectData()\t" + e);
+				throw e;
 			}
 			ts.add(Calendar.MINUTE, 10);
 		}
 		log("Finished : " + cp.toString(dayOfWeek) + "\ttotalCalls : " + totalCalls);
 	}
 
-	private void collectDurations() throws Exception {
+	private void collectDurations() {
 		for (CollectionParams cp : collectionParams) {
-			try {
-				for (int dayOfWeek = cp.startDayOfWeek; dayOfWeek <= cp.endDayOfWeek; dayOfWeek++) {
+			for (int dayOfWeek = cp.startDayOfWeek; dayOfWeek <= cp.endDayOfWeek; dayOfWeek++) {
+				try {
 					initBrowserDriver();
 					setupFile(cp, dayOfWeek);
 					setUpPage(cp, dayOfWeek);
 					collectData(cp, dayOfWeek);
-				}
-			} catch (Exception e) {
-				log(e);
-				driver = null;
-			} finally {
-				if (driver != null) {
-					driver.quit();
+				} catch (Throwable e) {
+					log("collectDurations() : " + e.toString());
 					driver = null;
+				} finally {
+					if (driver != null) {
+						driver.quit();
+						driver = null;
+					}
 				}
 			}
 		}
@@ -383,8 +388,8 @@ public class DurationCollector {
 			log("Starting all");
 			loadCollectionParams();
 			collectDurations();
-		} catch (Exception e) {
-			log(e);
+		} catch (Throwable e) {
+			log("run() : " + e.toString());
 			driver = null;
 		} finally {
 			if (driver != null) {
@@ -393,11 +398,6 @@ public class DurationCollector {
 			}
 			log("Finished all\ttotalCalls : " + totalCalls);
 		}
-	}
-
-	private void log(Exception e) {
-		e.printStackTrace();
-		log(e.getMessage());
 	}
 
 	private void log(String s) {
