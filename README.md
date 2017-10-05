@@ -1,4 +1,4 @@
-__Can break any time Google decides to change the HTML structure of their Maps page.__
+__Scrape estimated route times from Google Maps. Write a tab-delimited file of the data.__
 
 To build and run
 
@@ -36,7 +36,7 @@ To increase the odds that you'll get data
  
 Notes
 
-* Scrapes google maps for estimated commute duration
+* __Can break any time Google decides to change the HTML structure of their Maps page.__
 * Writes duration, time stamp and route to tab-separated file
 * Waze has similar functionality, but does not show a range of times.
 * _if you want to try Chrome_ ----- Google Chrome browser (doesn't work yet)
