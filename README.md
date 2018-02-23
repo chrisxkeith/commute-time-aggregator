@@ -13,7 +13,7 @@ To build and run
   * Install Firefox browser 
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
-  * Add to path : C:\Users\<you>\Downloads\geckodriver-v0.19.0-win64
+  * Add to path, e.g., C:\Users\<you>\Downloads\geckodriver-v0.19.0-win64
 * In git bash 
   * cd *yourDirectoryContainingRepositories* (e.g., C:\Users\<you>\Documents\Github\)
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
