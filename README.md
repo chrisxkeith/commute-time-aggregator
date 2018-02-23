@@ -5,7 +5,7 @@ To build and run
 * Download and install Github tools from https://desktop.github.com/
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice)
 * Download and install Java Development Kit : http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
-  * Set JAVA_HOME environment variable
+  * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\Java\jdk1.8.0_65
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\<you>\mvn\ to avoid 'path to long' error
   * Add to path : C:\Users\<you>\mvn\apache-maven-3.5.0\bin
