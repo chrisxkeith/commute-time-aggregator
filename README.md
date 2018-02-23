@@ -8,7 +8,7 @@ To build and run
   * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\Java\jdk1.8.0_65
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\<you>\mvn\ to avoid 'path to long' error
-  * Add to path : C:\Users\<you>\mvn\apache-maven-3.5.0\bin
+  * Add to path, e.g., C:\Users\<you>\mvn\apache-maven-3.5.0\bin
 * Firefox browser
   * Install Firefox browser 
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
