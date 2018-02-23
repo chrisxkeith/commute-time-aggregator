@@ -19,7 +19,10 @@ To build and run
   * cd *yourDirectoryContainingRepositories* (e.g., C:\Users\<you>\Documents\Github\)
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
 * In STS
-  * File > Import > C:\Users\<you>\Documents\Github\commute-time-aggregator\DurationCollector\pom.xml
+  * File > Import
+  * maven > existing maven projects 
+  * C:\Users\<you>\Documents\Github\commute-time-aggregator\DurationCollector
+  * pom.xml
 * Create text input file with parameters
   * C:\Users\<you>\Documents\routeinfo.txt
   * See DurationCollector() method for file format (fixed order of input lines)
