@@ -10,8 +10,11 @@ To build and run
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\<you>\mvn\ to avoid 'path to long' error
   * Add to path, e.g., C:\Users\<you>\mvn\apache-maven-3.5.0\bin
-* Firefox browser
-  * Install Firefox browser 
+* Install Google Chrome Selenium driver
+  * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
+  * Extract from zip
+  * Add to path : C:\Users\<you>\Downloads\ ... appropriate directory ...
+* _Can also install Firefox driver_
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
   * Add to path, e.g., C:\Users\<you>\Downloads\geckodriver-v0.19.0-win64
@@ -44,8 +47,3 @@ Notes
 
 * __Can break any time Google decides to change the HTML structure of their Maps page.__
 * Writes duration, time stamp and route to tab-separated file
-* Waze has similar functionality, but does not show a range of times.
-* _if you want to try Google Chrome browser (doesn't work yet)_
-  * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
-  * Extract from zip
-  * Add to path : C:\Users\<you>\Downloads\ ... appropriate directory ...
