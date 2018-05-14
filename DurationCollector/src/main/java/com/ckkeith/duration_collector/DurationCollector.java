@@ -95,8 +95,7 @@ public class DurationCollector {
 			throw new IllegalArgumentException(
 					"Unable to determine user.home directory from System.getProperty(\"user.home\")");
 		}
-		String pathEnd = File.separator + "Documents" + File.separator + "Github" + File.separator
-				+ "commute-time-aggregator" + File.separator + "DurationCollector" + File.separator + "data";
+		String pathEnd = File.separator + "Documents" + File.separator + "route-data";
 		File dir = new File(d + pathEnd);
 		if (!dir.exists()) {
 			try {
@@ -107,6 +106,7 @@ public class DurationCollector {
 			}
 		}
 		dirForResults = d + pathEnd;
+		System.out.println("Logging data to : " + dirForResults);
 		otherCollectionParamsFileName = d + File.separator + "Documents" + File.separator + "routeInfo.txt";
 		File f = new File(otherCollectionParamsFileName);
 		if (!f.exists()) {
@@ -120,6 +120,9 @@ public class DurationCollector {
 			throw e;
 		}
 		logFileName = tmpDir + File.separator + "routeInfo_" + UUID.randomUUID().toString() + ".log";
+		if (isDebug) {
+			log("Running in debug mode, only collecting a few durations.");
+		}
 	}
 
 	String getDayOfWeek(int dayOfWeek) {
@@ -276,6 +279,7 @@ public class DurationCollector {
 
 	private void initBrowserDriver() {
 		if (driver == null) {
+			// TODO (eventually) : Use Chrome, but must fix erratic StaleElementException first.
 			driver = new FirefoxDriver();
 			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
