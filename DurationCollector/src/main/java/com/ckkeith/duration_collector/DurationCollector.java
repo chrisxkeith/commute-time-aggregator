@@ -151,6 +151,7 @@ public class DurationCollector {
 		if (otherCollectionParamsFileName == null || this.otherCollectionParamsFileName.isEmpty()) {
 			throw new Exception("No otherCollectionParamsFileName specified");
 		}
+		System.out.println("Reading params from : " + otherCollectionParamsFileName);
 		BufferedReader br = new BufferedReader(new FileReader(otherCollectionParamsFileName));
 		try {
 			String personId = br.readLine();
