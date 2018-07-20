@@ -1,3 +1,4 @@
+// Please credit chris.keith@gmail.com
 package com.ckkeith.duration_collector;
 
 import java.io.*;
