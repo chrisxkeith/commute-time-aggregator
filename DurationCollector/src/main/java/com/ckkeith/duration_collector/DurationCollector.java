@@ -121,7 +121,7 @@ public class DurationCollector {
 			System.out.println("Unable to create : " + tmpDir);
 			throw e;
 		}
-		logFileName = tmpDir + File.separator + "routeInfo_" + UUID.randomUUID().toString() + ".log";
+		logFileName = dirForResults + File.separator + "routeInfo_" + UUID.randomUUID().toString() + ".log";
 		if (isDebug) {
 			log("Running in debug mode, only collecting a few durations.");
 		}
