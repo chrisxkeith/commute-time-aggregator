@@ -87,7 +87,6 @@ public class DurationCollector {
 	private WebDriver driver = null;
 	private String otherCollectionParamsFileName = null;
 	private String logFileName = null;
-	private int totalCalls = 0;
 	final private int MINUTES_PER_SAMPLE = 10;
 
 	public DurationCollector(String[] args) throws Exception {
@@ -135,9 +134,9 @@ public class DurationCollector {
 	}
 
 	private void loadCollectionParams(String start, String end, String id, int startDOW, int endDOW) throws Exception {
-		collectionParams.add(new CollectionParams(/* name of data set file */ "to_" + id, /* start location */ start,
+		collectionParams.add(new CollectionParams(/* name of data set file */ id + "_to_dest", /* start location */ start,
 				/* destination location */ end, startDOW, endDOW));
-		collectionParams.add(new CollectionParams(/* name of data set file */ "from_" + id,
+		collectionParams.add(new CollectionParams(/* name of data set file */ id + "_from_dest",
 				/* destination location */ end, /* start location */ start, startDOW, endDOW));
 	}
 
@@ -251,7 +250,6 @@ public class DurationCollector {
 		timeEl.sendKeys(Keys.chord(Keys.DELETE));
 		timeEl.sendKeys(this.gMapsTimeFormat.format(ts.getTime()));
 		timeEl.sendKeys(Keys.chord(Keys.ENTER));
-		totalCalls++;
 		Thread.sleep(5000);
 
 		int minEstimate = Integer.MAX_VALUE;
@@ -320,7 +318,8 @@ public class DurationCollector {
 		writeHeader(cp, dayOfWeek);
 	}
 
-	private void collectData(CollectionParams cp, int dayOfWeek) throws Throwable {
+	private int collectData(CollectionParams cp, int dayOfWeek) throws Throwable {
+		int totalCalls = 0;
 		LocalDateTime start = LocalDateTime.now();
 		log("Starting : " + cp.toString(dayOfWeek));
 		Calendar ts = Calendar.getInstance();
@@ -337,6 +336,7 @@ public class DurationCollector {
 		while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
 			try {
 				RouteEstimate newDuration = this.collectDuration(ts);
+				totalCalls++;
 				if ((newDuration.minEstimate != Integer.MAX_VALUE)
 						&& (newDuration.maxEstimate != Integer.MAX_VALUE)) {
 					writeDuration(cp, ts, newDuration, dayOfWeek);
@@ -354,16 +354,18 @@ public class DurationCollector {
 		}
 		Long minutes = ChronoUnit.MINUTES.between(start, LocalDateTime.now());
 		log("Finished : " + cp.toString(dayOfWeek) + "\trun time (minutes)\t" + minutes + "\ttotalCalls\t" + totalCalls);
+		return totalCalls;
 	}
 
-	private void collectDurations() {
+	private int collectDurations() {
+		int totalcalls = 0;
 		for (CollectionParams cp : collectionParams) {
 			for (int dayOfWeek = cp.startDayOfWeek; dayOfWeek <= cp.endDayOfWeek; dayOfWeek++) {
 				try {
 					initBrowserDriver();
 					setupFile(cp, dayOfWeek);
 					setUpPage(cp, dayOfWeek);
-					collectData(cp, dayOfWeek);
+					totalcalls += collectData(cp, dayOfWeek);
 				} catch (Throwable e) {
 					log("collectDurations() : " + e.toString());
 					driver = null;
@@ -375,6 +377,7 @@ public class DurationCollector {
 				}
 			}
 		}
+		return totalcalls;
 	}
 
 	private void writeDuration(CollectionParams cp, Calendar ts, RouteEstimate newDuration,
@@ -395,10 +398,12 @@ public class DurationCollector {
 	}
 
 	public void run() {
+		LocalDateTime start = LocalDateTime.now();
+		int totalCalls = 0;
 		try {
 			log("Starting all");
 			loadCollectionParams();
-			collectDurations();
+			totalCalls = collectDurations();
 		} catch (Throwable e) {
 			log("run() : " + e.toString());
 			driver = null;
@@ -407,7 +412,8 @@ public class DurationCollector {
 				driver.quit();
 				driver = null;
 			}
-			log("Finished all\ttotalCalls : " + totalCalls);
+			Long minutes = ChronoUnit.MINUTES.between(start, LocalDateTime.now());
+			log("Finished all\trun time (minutes)\t" + minutes + "\ttotalCalls\t" + totalCalls);
 		}
 	}
 
