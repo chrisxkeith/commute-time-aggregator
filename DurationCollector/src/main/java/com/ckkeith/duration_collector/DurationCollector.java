@@ -21,6 +21,8 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 public class DurationCollector {
 
@@ -319,6 +321,7 @@ public class DurationCollector {
 	}
 
 	private void collectData(CollectionParams cp, int dayOfWeek) throws Throwable {
+		LocalDateTime start = LocalDateTime.now();
 		log("Starting : " + cp.toString(dayOfWeek));
 		Calendar ts = Calendar.getInstance();
 		ts.set(Calendar.DAY_OF_WEEK, dayOfWeek);
@@ -349,7 +352,8 @@ public class DurationCollector {
 			}
 			ts.add(Calendar.MINUTE, MINUTES_PER_SAMPLE);
 		}
-		log("Finished : " + cp.toString(dayOfWeek) + "\ttotalCalls : " + totalCalls);
+		Long minutes = ChronoUnit.MINUTES.between(start, LocalDateTime.now());
+		log("Finished : " + cp.toString(dayOfWeek) + "\trun time (minutes)\t" + minutes + "\ttotalCalls\t" + totalCalls);
 	}
 
 	private void collectDurations() {
