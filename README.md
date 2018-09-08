@@ -47,3 +47,4 @@ Notes
 
 * __Can break any time Google decides to change the HTML structure of their Maps page.__
 * Writes duration, time stamp and route to tab-separated file
+* Presentation at https://docs.google.com/presentation/d/1Ulf6LNdhSGW9QETfhoIF9arNxw70buukseLuLyKfpf0/edit#slide=id.p
