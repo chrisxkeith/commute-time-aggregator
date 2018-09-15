@@ -6,18 +6,18 @@ To build and run
 * Download and install Java Development Kit : http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
   * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\Java\jdk1.8.0_65
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
-  * Extract into C:\Users\<you>\mvn\ to avoid 'path to long' error
-  * Add to path, e.g., C:\Users\<you>\mvn\apache-maven-3.5.0\bin
+  * Extract into C:\Users\\[you]\mvn\ to avoid 'path to long' error
+  * Add to path, e.g., C:\Users\[you]\mvn\apache-maven-3.5.0\bin
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice)
-  * Extract into C:\Users\<you>\sts to avoid 'path to long' error.
+  * Extract into C:\Users\\[you]\sts to avoid 'path to long' error.
 * Install Google Chrome Selenium driver
   * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
   * Extract from zip
-  * Add to path : C:\Users\<you>\Downloads\ ... appropriate directory ...
+  * Add to path : C:\Users\\[you]\Downloads\ ... appropriate directory ...
 * _Can also install Firefox driver_
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
-  * Add to path, e.g., C:\Users\<you>\Downloads\geckodriver-v0.19.0-win64
+  * Add to path, e.g., C:\Users\\[you]\Downloads\geckodriver-v0.19.0-win64
 * In git bash 
   * cd *yourDirectoryContainingRepositories* (e.g., C:\Users\<you>\Documents\Github\)
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
@@ -27,7 +27,7 @@ To build and run
   * C:\Users\<you>\Documents\Github\commute-time-aggregator\DurationCollector
   * pom.xml
 * Create text input file with parameters
-  * C:\Users\<you>\Documents\routeinfo.txt
+  * C:\Users\\[you]\Documents\routeinfo.txt
   * See loadCollectionParams() method for file format. It's a fixed order of input lines.
 * In git bash (may need Windows CMD instead)
   * cd commute-time-aggregator/DurationCollector
