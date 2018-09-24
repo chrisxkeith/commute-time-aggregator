@@ -281,8 +281,6 @@ public class DurationCollector {
 
 	private void initBrowserDriver() {
 		if (driver == null) {
-// TODO : handle:
-// 2018-09-24T06:06:17-07	collectDurations() : org.openqa.selenium.StaleElementReferenceException: stale element reference: element is not attached to the page document
 			driver = new ChromeDriver();
 			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
@@ -369,6 +367,9 @@ public class DurationCollector {
 					totalcalls += collectData(cp, dayOfWeek);
 				} catch (Throwable e) {
 					log("collectDurations() : " + e.toString());
+// 2018-09-24T06:06:17-07      collectDurations() : org.openqa.selenium.StaleElementReferenceException: stale element reference: element is not attached to the page document
+// Try to get more data to be able to fix/kludge-around this exception
+					e.printStackTrace();
 					driver = null;
 				} finally {
 					if (driver != null) {
