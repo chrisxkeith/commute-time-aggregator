@@ -17,7 +17,6 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -135,9 +134,9 @@ public class DurationCollector {
 	}
 
 	private void loadCollectionParams(String start, String end, String id, int startDOW, int endDOW) throws Exception {
-		collectionParams.add(new CollectionParams(/* name of data set file */ id + "_to_dest", /* start location */ start,
+		collectionParams.add(new CollectionParams("to_" + /* name of data set file */ id, /* start location */ start,
 				/* destination location */ end, startDOW, endDOW));
-		collectionParams.add(new CollectionParams(/* name of data set file */ id + "_from_dest",
+		collectionParams.add(new CollectionParams("from_" + /* name of data set file */ id,
 				/* destination location */ end, /* start location */ start, startDOW, endDOW));
 	}
 
@@ -282,6 +281,8 @@ public class DurationCollector {
 
 	private void initBrowserDriver() {
 		if (driver == null) {
+// TODO : handle:
+// 2018-09-24T06:06:17-07	collectDurations() : org.openqa.selenium.StaleElementReferenceException: stale element reference: element is not attached to the page document
 			driver = new ChromeDriver();
 			driver.manage().timeouts().implicitlyWait(sleepSeconds, TimeUnit.SECONDS);
 		}
