@@ -10,14 +10,14 @@ To build and run
   * Add to path, e.g., C:\Users\[you]\mvn\apache-maven-3.5.0\bin
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice)
   * Extract into C:\Users\\[you]\sts to avoid 'path to long' error.
-* Install Google Chrome Selenium driver
-  * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
-  * Extract from zip
-  * Add to path : C:\Users\\[you]\Downloads\ ... appropriate directory ...
-* _Can also install Firefox driver_
+* Install Firefox driver
   * Download geckodriver from https://github.com/mozilla/geckodriver/releases
   * Extract from zip
   * Add to path, e.g., C:\Users\\[you]\Downloads\geckodriver-v0.19.0-win64
+* _Can also install Google Chrome Selenium driver, but is less reliable_
+  * Download ChromeDriver from https://sites.google.com/a/chromium.org/chromedriver/downloads (click on "Latest Release" link)
+  * Extract from zip
+  * Add to path : C:\Users\\[you]\Downloads\ ... appropriate directory ...
 * In git bash 
   * cd *yourDirectoryContainingRepositories* (e.g., C:\Users\<you>\Documents\Github\)
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
