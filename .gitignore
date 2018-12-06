@@ -4,4 +4,7 @@
 *.jar
 *.war
 *.ear
+
 DurationCollector/target/
+DurationCollector/.classpath
+DurationCollector/.settings/org.eclipse.jdt.core.prefs
