@@ -205,7 +205,7 @@ public class DurationCollector {
 		log("Continuing with : " + cp.toString(dayOfWeek));
 	}
 
-	// TODO : Any way to replace all calls to Thread.sleep() ?
+	// TO DO : Any way to replace all calls to Thread.sleep() ?
 	private void clickOnDayOfWeek(int dayOfWeek) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 		wait.until(ExpectedConditions.elementToBeClickable(By.className("date-input")));
