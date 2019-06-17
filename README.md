@@ -1,3 +1,5 @@
+__Currently broken because the Google Maps UI changed. File an issue if you want it fixed.__
+
 __Scrape estimated route times from Google Maps. Write a tab-delimited file of the data.__
 
 To build and run
