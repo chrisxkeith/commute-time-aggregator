@@ -226,9 +226,8 @@ public class DurationCollector {
 		wait.until(ExpectedConditions.elementToBeClickable(By.id("searchboxinput")));
 		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
 
-//		wait.until(ExpectedConditions.elementToBeClickable(By.id("section-hero-header-directions")));
 		Thread.sleep(10 * 1000);
-		driver.findElement(By.className("section-hero-header-directions")).click();
+		driver.findElement(By.xpath("/html/body/jsl/div[3]/div[8]/div[9]/div/div[1]/div/div/div[5]/div[1]/div/button")).click();
 
 		WebElement currentElement = driver.switchTo().activeElement();
 		currentElement.sendKeys(cp.homeLocation + "\n");
