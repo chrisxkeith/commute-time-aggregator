@@ -1,4 +1,4 @@
-__Currently broken because the Google Maps UI changed. File an issue if you want it fixed.__
+__Worked with version of GMaps that Google chose to serve up to me on 2019.Aug.29.__
 
 __Scrape estimated route times from Google Maps. Write a tab-delimited file of the data.__
 
