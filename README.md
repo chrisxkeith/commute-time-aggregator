@@ -23,19 +23,20 @@ To build and run
 * In git bash 
   * cd *yourDirectoryContainingRepositories* (e.g., C:\Users\<you>\Documents\Github\)
   * git clone https://github.com/chrisxkeith/commute-time-aggregator.git
-* In STS
-  * File > Import
-  * maven > existing maven projects 
-  * C:\Users\<you>\Documents\Github\commute-time-aggregator\DurationCollector
-  * pom.xml
 * Create text input file with parameters
   * C:\Users\\[you]\Documents\routeinfo.txt
   * See loadCollectionParams() method for file format. It's a fixed order of input lines.
 * In git bash (may need Windows CMD instead)
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
-  * The first time you run, it will take a while to download all the required jar files
-  * It will take a minute or two for the browser to come up
+  * The first time you run, it will take a while to download all the required jar files.
+  * It will take a minute or two for the browser to come up.
+  * Some browsers may keep your previous Maps settings (e.g., public transit vs. driving). Watch the browser for a couple of minutes to make sure that you are getting the data you expect. You can, while the automation in running, click on the car icon if necessary.
+* In STS
+  * File > Import
+  * maven > existing maven projects 
+  * C:\Users\<you>\Documents\Github\commute-time-aggregator\DurationCollector
+  * pom.xml
 
 To increase the odds that you'll get data
 
