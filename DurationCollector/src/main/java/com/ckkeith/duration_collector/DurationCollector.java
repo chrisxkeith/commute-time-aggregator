@@ -227,10 +227,15 @@ public class DurationCollector {
 		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
 
 		Thread.sleep(10 * 1000);
+		// Ugly, but seems like the only reliable way to find the "Directions" button.
 		driver.findElement(By.xpath("/html/body/jsl/div[3]/div[8]/div[9]/div/div[1]/div/div/div[5]/div[1]/div/button")).click();
 
 		WebElement currentElement = driver.switchTo().activeElement();
 		currentElement.sendKeys(cp.homeLocation + "\n");
+
+		// Make sure we're using drive times, not public transit or walking.
+		Thread.sleep(5 * 1000);
+		driver.findElement(By.cssSelector(".directions-drive-icon")).click();
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Leave now\")]]")));
 		driver.findElement(By.xpath("//*[text()[contains(.,\"Leave now\")]]")).click();
