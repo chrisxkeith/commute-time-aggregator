@@ -337,7 +337,7 @@ public class DurationCollector {
 		ts.set(Calendar.MINUTE, 0);
 		ts.add(Calendar.HOUR, 0); // force Calendar internal recalculation.
 		int endHour;
-		if (true) {
+		if (isDebug) {
 			endHour = 5;
 		} else {
 			endHour = 20;
