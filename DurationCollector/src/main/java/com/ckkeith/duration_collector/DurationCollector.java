@@ -27,7 +27,7 @@ import java.time.temporal.ChronoUnit;
 
 public class DurationCollector {
 
-	class CollectionParams {
+	public class CollectionParams {
 		String routeId;
 		String homeLocation;
 		String workLocation;
@@ -314,12 +314,17 @@ public class DurationCollector {
 		return dirForResults + "/" + cp.toString(dayOfWeek) + ".txt";
 	}
 
-	private void setupFile(CollectionParams cp, int dayOfWeek) throws Exception {
+	private void setupFile(CollectionParams cp, int dayOfWeek) throws Throwable {
 		File f = new File(getPath(cp, dayOfWeek));
 		if (f.exists()) {
 			f.delete();
 		}
 		writeHeader(cp, dayOfWeek);
+	}
+
+	private void setupSelenium(CollectionParams cp, int dayOfWeek) throws Exception {
+		initBrowserDriver();
+		setUpPage(cp, dayOfWeek);
 	}
 
 	private int collectData(CollectionParams cp, int dayOfWeek) throws Throwable {
@@ -332,56 +337,51 @@ public class DurationCollector {
 		ts.set(Calendar.MINUTE, 0);
 		ts.add(Calendar.HOUR, 0); // force Calendar internal recalculation.
 		int endHour;
-		if (isDebug) {
+		if (true) {
 			endHour = 5;
 		} else {
 			endHour = 20;
 		}
-		while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
-			try {
-				RouteEstimate newDuration = this.collectDuration(ts);
-				totalCalls++;
-				if ((newDuration.minEstimate != Integer.MAX_VALUE)
-						&& (newDuration.maxEstimate != Integer.MAX_VALUE)) {
-					writeDuration(cp, ts, newDuration, dayOfWeek);
-				} else {
-					log("collectData()\tInvalid data\t" + newDuration.toString());
+		try {
+			setupSelenium(cp, dayOfWeek);
+			while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
+				try {
+					RouteEstimate newDuration = this.collectDuration(ts);
+					totalCalls++;
+					if ((newDuration.minEstimate != Integer.MAX_VALUE)
+							&& (newDuration.maxEstimate != Integer.MAX_VALUE)) {
+						writeDuration(cp, ts, newDuration, dayOfWeek);
+					} else {
+						log("collectData()\tInvalid data\t" + newDuration.toString());
+						log("collectData()\t" + ts.toString());
+						log("collectData()\t" + driver.findElement(By.xpath("//body")).getText());
+					}
+				} catch (Throwable e) {
 					log("collectData()\t" + ts.toString());
-					log("collectData()\t" + driver.findElement(By.xpath("//body")).getText());
+					log("collectData()\t" + e);
+					e.printStackTrace();
+					driver = null;
+					throw e;
 				}
-			} catch (Throwable e) {
-				log("collectData()\t" + ts.toString());
-				log("collectData()\t" + e);
-				throw e;
+				ts.add(Calendar.MINUTE, MINUTES_PER_SAMPLE);
 			}
-			ts.add(Calendar.MINUTE, MINUTES_PER_SAMPLE);
+		} finally {
+			if (driver != null) {
+				driver.quit();
+				driver = null;
+			}
 		}
 		Long minutes = ChronoUnit.MINUTES.between(start, LocalDateTime.now());
 		log("Finished : " + cp.toString(dayOfWeek) + "\trun time (minutes)\t" + minutes + "\ttotalCalls\t" + totalCalls);
 		return totalCalls;
 	}
 
-	private int collectDurations() {
+	private int collectDurations() throws Throwable {
 		int totalcalls = 0;
 		for (CollectionParams cp : collectionParams) {
 			for (int dayOfWeek = cp.startDayOfWeek; dayOfWeek <= cp.endDayOfWeek; dayOfWeek++) {
-				try {
-					initBrowserDriver();
-					setupFile(cp, dayOfWeek);
-					setUpPage(cp, dayOfWeek);
-					totalcalls += collectData(cp, dayOfWeek);
-				} catch (Throwable e) {
-					log("collectDurations() : " + e.toString());
-// 2018-09-24T06:06:17-07      collectDurations() : org.openqa.selenium.StaleElementReferenceException: stale element reference: element is not attached to the page document
-// Try to get more data to be able to fix/kludge-around this exception
-					e.printStackTrace();
-					driver = null;
-				} finally {
-					if (driver != null) {
-						driver.quit();
-						driver = null;
-					}
-				}
+				setupFile(cp, dayOfWeek);
+				totalcalls += collectData(cp, dayOfWeek);
 			}
 		}
 		return totalcalls;
