@@ -353,7 +353,9 @@ public class DurationCollector {
 					if (useBrowser) {
 						newDuration = this.collectDurationUsingBrowser(ts);
 					} else {
-						newDuration = ApiCollector.collectDuration(this, ts, cp);
+						newDuration = new RouteEstimate(Integer.MAX_VALUE, Integer.MAX_VALUE,
+							"no raw data", "route name to come");
+						ApiCollector.collectDuration(newDuration, this, ts, cp);
 					}
 					totalCalls++;
 					if ((newDuration.minEstimate != Integer.MAX_VALUE)
