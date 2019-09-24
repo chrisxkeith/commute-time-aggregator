@@ -353,7 +353,7 @@ public class DurationCollector {
 					if (useBrowser) {
 						newDuration = this.collectDurationUsingBrowser(ts);
 					} else {
-						newDuration = ApiCollector.collectDuration(this, cp, dayOfWeek);
+						newDuration = ApiCollector.collectDuration(this, ts, cp);
 					}
 					totalCalls++;
 					if ((newDuration.minEstimate != Integer.MAX_VALUE)
@@ -362,7 +362,9 @@ public class DurationCollector {
 					} else {
 						log("collectData()\tInvalid data\t" + newDuration.toString());
 						log("collectData()\t" + ts.toString());
-						log("collectData()\t" + driver.findElement(By.xpath("//body")).getText());
+						if (useBrowser) {
+							log("collectData()\t" + driver.findElement(By.xpath("//body")).getText());
+						}
 					}
 				} catch (Throwable e) {
 					log("collectData()\t" + ts.toString());
