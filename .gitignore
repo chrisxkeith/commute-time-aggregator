@@ -6,8 +6,9 @@
 *.ear
 
 ./DurationCollector/target/
-./DurationCollector/.classpath
-./DurationCollector/.settings/org.eclipse.jdt.core.prefs
+.settings
+.classpath
+.project
 
 .vscode/
 DurationCollector/bin/
