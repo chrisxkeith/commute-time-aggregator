@@ -68,6 +68,7 @@ public class DurationCollector {
 	}
 
 	final boolean isDebug;
+	final boolean useBrowser = true;
 	final int sleepFactor = 2; // increase for slower computers.
 	final int sleepSeconds = 30 * sleepFactor;
 	final private String dirForResults;
@@ -246,7 +247,7 @@ public class DurationCollector {
 		// manuallySetDayOfWeek(cp, dayOfWeek);
 	}
 
-	private RouteEstimate collectDuration(Calendar ts) throws Exception {
+	private RouteEstimate collectDurationUsingBrowser(Calendar ts) throws Exception {
 		WebDriverWait wait = new WebDriverWait(driver, sleepSeconds, 1000);
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.name("transit-time")));
@@ -343,10 +344,17 @@ public class DurationCollector {
 			endHour = 20;
 		}
 		try {
-			setupSelenium(cp, dayOfWeek);
+			if (useBrowser) {
+				setupSelenium(cp, dayOfWeek);
+			}
 			while (ts.get(Calendar.HOUR_OF_DAY) < endHour) {
 				try {
-					RouteEstimate newDuration = this.collectDuration(ts);
+					RouteEstimate newDuration;
+					if (useBrowser) {
+						newDuration = this.collectDurationUsingBrowser(ts);
+					} else {
+						newDuration = ApiCollector.collectDuration(this, cp, dayOfWeek);
+					}
 					totalCalls++;
 					if ((newDuration.minEstimate != Integer.MAX_VALUE)
 							&& (newDuration.maxEstimate != Integer.MAX_VALUE)) {
