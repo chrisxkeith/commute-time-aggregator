@@ -4,7 +4,9 @@ __Scrape estimated route times from Google Maps. Write a tab-delimited file of t
 
 To build and run
 
-* Download and Git tools from https://git-scm.com/download
+* Download and install Github desktop
+* Log into your Github account
+* Download and Git tools from https://git-scm.com/download (if you like working from the command line)
 * Download and install Java Development Kit : http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
   * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\Java\jdk1.8.0_65
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
