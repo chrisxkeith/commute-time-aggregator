@@ -46,8 +46,8 @@ public class ApiCollector {
                 }
             }
         }
-        re.minEstimate = new Integer((int)minTimeInSeconds);
-        re.maxEstimate = new Integer((int)minTimeInSeconds);
+        re.minEstimate = new Integer((int)minTimeInSeconds / 60);
+        re.maxEstimate = new Integer((int)minTimeInSeconds / 60);
         re.rawData = "n/a";
         re.routeName = "n/a";
     }
