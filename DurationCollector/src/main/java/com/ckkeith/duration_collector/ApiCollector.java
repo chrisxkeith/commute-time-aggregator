@@ -2,6 +2,7 @@
 package com.ckkeith.duration_collector;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 
 import com.ckkeith.duration_collector.DurationCollector;
@@ -31,8 +32,12 @@ public class ApiCollector {
     
     static public void collectDuration(RouteEstimate re, DurationCollector durationCollector, Calendar ts, 
                 DurationCollector.CollectionParams collectionParams) throws Exception {
-/*
-        DistanceMatrix dm = estimateRouteTime(ts.toInstant(), collectionParams.homeLocation, collectionParams.workLocation);
+        Instant instant = ts.toInstant();
+        Instant now = Instant.now();
+        while (instant.isBefore(now)) {
+            instant.plus(7, ChronoUnit.DAYS);
+        }
+        DistanceMatrix dm = estimateRouteTime(instant, collectionParams.homeLocation, collectionParams.workLocation);
         long minTimeInSeconds = Long.MAX_VALUE;
         for (DistanceMatrixRow dmr : dm.rows) {
             for (DistanceMatrixElement dme : dmr.elements) {
@@ -43,8 +48,7 @@ public class ApiCollector {
         }
         re.minEstimate = new Integer((int)minTimeInSeconds);
         re.maxEstimate = new Integer((int)minTimeInSeconds);
-        re.rawData = "no raw data";
-        re.routeName = "route name to come";
-*/
+        re.rawData = "n/a";
+        re.routeName = "n/a";
     }
 }

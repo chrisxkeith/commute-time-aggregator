@@ -68,7 +68,7 @@ public class DurationCollector {
 	}
 
 	final boolean isDebug;
-	final boolean useBrowser = true;
+	final boolean useBrowser = false;
 	final int sleepFactor = 2; // increase for slower computers.
 	final int sleepSeconds = 30 * sleepFactor;
 	final private String dirForResults;
@@ -333,10 +333,8 @@ public class DurationCollector {
 		LocalDateTime start = LocalDateTime.now();
 		log("Starting : " + cp.toString(dayOfWeek));
 		Calendar ts = Calendar.getInstance();
-		ts.set(Calendar.DAY_OF_WEEK, dayOfWeek);
-		ts.set(Calendar.HOUR_OF_DAY, 4);
-		ts.set(Calendar.MINUTE, 0);
-		ts.add(Calendar.HOUR, 0); // force Calendar internal recalculation.
+		ts.set(start.getYear(), start.getMonthValue(), dayOfWeek, 4, 0);
+
 		int endHour;
 		if (isDebug) {
 			endHour = 5;
