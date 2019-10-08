@@ -22,6 +22,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
@@ -334,10 +335,14 @@ public class DurationCollector {
 		log("Starting : " + cp.toString(dayOfWeek));
 		Calendar ts = Calendar.getInstance();
 		ts.set(start.getYear(), start.getMonthValue(), dayOfWeek, 4, 0);
+        Instant instant = ts.toInstant();
+        Instant now = Instant.now();
+        while (instant.isBefore(now)) {
+            instant.plus(7, ChronoUnit.DAYS);
+        }
 
 		int endHour = 20;
 		if (isDebug) {
-			log("Running in debug mode, only collecting a few durations.");
 			minutesPerSample = 60;
 		} else {
 			minutesPerSample = 10;
@@ -354,7 +359,8 @@ public class DurationCollector {
 					} else {
 						newDuration = new RouteEstimate(Integer.MAX_VALUE, Integer.MAX_VALUE,
 							"no raw data", "route name to come");
-						ApiCollector.collectDuration(newDuration, this, ts, cp);
+						ApiCollector.collectDuration(newDuration, this, instant, cp);
+						instant.plus(minutesPerSample, ChronoUnit.MINUTES);
 					}
 					totalCalls++;
 					if ((newDuration.minEstimate != Integer.MAX_VALUE)

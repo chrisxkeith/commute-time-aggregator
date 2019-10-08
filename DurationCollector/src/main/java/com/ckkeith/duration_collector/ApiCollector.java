@@ -30,13 +30,10 @@ public class ApiCollector {
             .await();
     }
     
-    static public void collectDuration(RouteEstimate re, DurationCollector durationCollector, Calendar ts, 
-                DurationCollector.CollectionParams collectionParams) throws Exception {
-        Instant instant = ts.toInstant();
-        Instant now = Instant.now();
-        while (instant.isBefore(now)) {
-            instant.plus(7, ChronoUnit.DAYS);
-        }
+    static public void collectDuration(RouteEstimate re, 
+                DurationCollector durationCollector, Instant instant, 
+                DurationCollector.CollectionParams collectionParams)
+                        throws Exception {
         DistanceMatrix dm = estimateRouteTime(instant, collectionParams.homeLocation, collectionParams.workLocation);
         long minTimeInSeconds = Long.MAX_VALUE;
         for (DistanceMatrixRow dmr : dm.rows) {
