@@ -89,7 +89,7 @@ public class DurationCollector {
 	private WebDriver driver = null;
 	private String otherCollectionParamsFileName = null;
 	private String logFileName = null;
-	final private int MINUTES_PER_SAMPLE = 10;
+	private int minutesPerSample;
 
 	public DurationCollector(String[] args) throws Exception {
 		isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
@@ -335,11 +335,12 @@ public class DurationCollector {
 		Calendar ts = Calendar.getInstance();
 		ts.set(start.getYear(), start.getMonthValue(), dayOfWeek, 4, 0);
 
-		int endHour;
+		int endHour = 20;
 		if (isDebug) {
-			endHour = 5;
+			log("Running in debug mode, only collecting a few durations.");
+			minutesPerSample = 60;
 		} else {
-			endHour = 20;
+			minutesPerSample = 10;
 		}
 		try {
 			if (useBrowser) {
@@ -373,7 +374,7 @@ public class DurationCollector {
 					driver = null;
 					throw e;
 				}
-				ts.add(Calendar.MINUTE, MINUTES_PER_SAMPLE);
+				ts.add(Calendar.MINUTE, minutesPerSample);
 			}
 		} finally {
 			if (driver != null) {
