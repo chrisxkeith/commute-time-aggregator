@@ -69,7 +69,7 @@ public class DurationCollector {
 	}
 
 	final boolean isDebug;
-	final boolean useBrowser = false;
+	final boolean useBrowser = true;
 	final int sleepFactor = 2; // increase for slower computers.
 	final int sleepSeconds = 30 * sleepFactor;
 	final private String dirForResults;
