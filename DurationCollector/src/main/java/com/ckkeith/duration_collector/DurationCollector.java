@@ -229,10 +229,12 @@ public class DurationCollector {
 		driver.findElement(By.id("searchboxinput")).sendKeys(cp.workLocation + "\n");
 
 		Thread.sleep(10 * 1000);
-		// Ugly, but seems like the only reliable way to find the "Directions" button.
-		driver.findElement(By.xpath("/html/body/jsl/div[3]/div[8]/div[9]/div/div[1]/div/div/div[5]/div[1]/div/button")).click();
-
+		driver.findElement(By.cssSelector("button[aria-label='Directions']"));
+// Other attributes that could be used:
+//		<button aria-label="Directions" data-value="Directions" jsaction="pane.placeActions.directions"
 		WebElement currentElement = driver.switchTo().activeElement();
+		currentElement.click();
+		currentElement = driver.switchTo().activeElement();
 		currentElement.sendKeys(cp.homeLocation + "\n");
 
 		// Make sure we're using drive times, not public transit or walking.

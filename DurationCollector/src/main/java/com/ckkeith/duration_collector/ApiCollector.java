@@ -2,8 +2,6 @@
 package com.ckkeith.duration_collector;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Calendar;
 
 import com.ckkeith.duration_collector.DurationCollector;
 import com.ckkeith.duration_collector.DurationCollector.RouteEstimate;
