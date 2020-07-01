@@ -7,7 +7,7 @@ To build and run
 * Download and install Github desktop
 * Download and Git tools from https://git-scm.com/download (if you like working from the command line)
 * Download and install Java Development Kit : https://developers.redhat.com/products/openjdk/download
-  * Use Java 14
+  * Use Java 14 (jdk-14.0.1-x64 ZIP)
   * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\RedHat\java-14-openjdk-14.0.1-1
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
   * Extract into C:\Users\\[you]\mvn\ to avoid 'path to long' error
