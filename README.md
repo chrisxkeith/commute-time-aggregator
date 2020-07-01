@@ -6,7 +6,7 @@ To build and run
 
 * Download and install Github desktop
 * Download and Git tools from https://git-scm.com/download (if you like working from the command line)
-* Download and install Java Development Kit : https://developers.redhat.com/products/openjdk/download
+* Download and install Java Development Kit : https://developers.redhat.com/products/openjdk/download (You will need a Redhat account.)
   * Use Java 14 (jdk-14.0.1-x64 MSI)
   * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\RedHat\java-14-openjdk-14.0.1-1
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
