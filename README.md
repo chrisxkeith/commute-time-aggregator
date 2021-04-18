@@ -28,7 +28,7 @@ To build and run
 * Create text input file with parameters
   * C:\Users\\[you]\Documents\routeinfo.txt
   * See loadCollectionParams() method for file format. It's a fixed order of input lines.
-* In git bash (may need Windows CMD instead)
+* In git bash
   * cd commute-time-aggregator/DurationCollector
   * mvn clean install exec:java -Dexec.mainClass="com.ckkeith.duration_collector.DurationCollector"
   * The first time you run, it will take a while to download all the required jar files.
