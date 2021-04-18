@@ -13,6 +13,7 @@ import com.google.maps.model.DistanceMatrixElement;
 import com.google.maps.model.DistanceMatrixRow;
 import com.google.maps.model.TravelMode;
 
+// Maybe not possible (need Business License?) : https://stackoverflow.com/questions/6202618/using-google-maps-api-to-estimate-future-trip-duration
 public class ApiCollector {
     // https://stackoverflow.com/questions/40561264/how-to-use-google-maps-distance-matrix-java-api-to-obtain-closest-distance-betwe
     private static final String API_KEY = "YOUR_API_KEY";
@@ -41,8 +42,8 @@ public class ApiCollector {
                 }
             }
         }
-        re.minEstimate = new Integer((int)minTimeInSeconds / 60);
-        re.maxEstimate = new Integer((int)minTimeInSeconds / 60);
+        re.minEstimate = Integer.valueOf((int)minTimeInSeconds / 60);
+        re.maxEstimate = Integer.valueOf((int)minTimeInSeconds / 60);
         re.rawData = "n/a";
         re.routeName = "n/a";
     }
