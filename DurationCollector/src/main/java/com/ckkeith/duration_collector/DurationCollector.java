@@ -239,7 +239,7 @@ public class DurationCollector {
 
 		// Make sure we're using drive times, not public transit or walking.
 		Thread.sleep(5 * 1000);
-		driver.findElement(By.cssSelector(".directions-drive-icon")).click();
+		driver.findElement(By.xpath("//img[@data-tooltip='Driving']")).click();
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[text()[contains(.,\"Leave now\")]]")));
 		driver.findElement(By.xpath("//*[text()[contains(.,\"Leave now\")]]")).click();
