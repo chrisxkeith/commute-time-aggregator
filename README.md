@@ -7,10 +7,11 @@ To build and run
 * Download and install Github desktop
 * Download and Git tools from https://git-scm.com/download (if you like working from the command line)
 * Download and install Java Development Kit : https://developers.redhat.com/products/openjdk/download (You will need a Redhat account.)
-  * Use Java 14 (jdk-14.0.1-x64 MSI)
+  * Use latest instead? -Use Java 14 (jdk-14.0.1-x64 MSI)
+  * Shorten path to avoid 'path too long' error
   * Set JAVA_HOME environment variable. e.g., JAVA_HOME=C:\Program Files\RedHat\java-14-openjdk-14.0.1-1
 * Download and install maven from https://maven.apache.org/download.cgi and https://maven.apache.org/install.html
-  * Extract into C:\Users\\[you]\mvn\ to avoid 'path to long' error
+  * Extract into C:\Users\\[you]\mvn\ to avoid 'path too long' error
   * Add to path, e.g., C:\Users\[you]\mvn\apache-maven-3.6.2\bin
 * Download and install Spring Tool Suite from https://spring.io/tools/sts/all (or editor/IDE of your choice)
   * Extract into C:\Users\\[you]\sts to avoid 'path to long' error.
